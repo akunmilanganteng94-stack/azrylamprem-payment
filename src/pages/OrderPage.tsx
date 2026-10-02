@@ -225,54 +225,61 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
     }
   };
 
-  // Helper to extract clean email & inboxUrl from AM Bulk API response
+  // Helper to extract clean email & inboxUrl directly from AM Bulk API response
   const parseBulkAccounts = (raw: any): BulkAccountItem[] => {
     const list: BulkAccountItem[] = [];
     if (!raw) return list;
+
+    let parsed = raw;
+    if (typeof raw === 'string') {
+      try {
+        parsed = JSON.parse(raw);
+      } catch {
+        parsed = raw;
+      }
+    }
 
     const pushItem = (item: any) => {
       if (!item) return;
       if (typeof item === 'string') {
         const parts = item.split('|');
         if (parts.length > 1) {
-          list.push({ email: parts[0].trim(), inboxUrl: parts[1].trim() });
-        } else {
+          const em = parts[0].trim();
+          const inb = parts[1].trim();
+          if (em) list.push({ email: em, inboxUrl: inb });
+        } else if (item.trim()) {
           list.push({ email: item.trim(), inboxUrl: '' });
         }
       } else if (typeof item === 'object') {
-        const em = item.email || item.gmail || item.user || '';
-        const inbox = item.inboxUrl || item.inbox || item.url || item.link || item.inbox_url || '';
-        if (em || inbox) {
+        const em = String(item.email || item.gmail || item.user || '').trim();
+        const inbox = String(item.inboxUrl || item.inbox_url || item.inbox || item.url || item.link || '').trim();
+        if (em) {
           list.push({ email: em, inboxUrl: inbox });
         }
       }
     };
 
-    if (Array.isArray(raw.data)) {
-      raw.data.forEach(pushItem);
-    } else if (Array.isArray(raw.accounts)) {
-      raw.accounts.forEach(pushItem);
-    } else if (Array.isArray(raw.result)) {
-      raw.result.forEach(pushItem);
-    } else if (Array.isArray(raw)) {
-      raw.forEach(pushItem);
-    } else if (typeof raw === 'object') {
-      if (raw.email) {
-        pushItem(raw);
+    // 1. Zyvor Bulk V3 standard response: results: [{ email, inboxUrl }]
+    if (Array.isArray(parsed.results)) {
+      parsed.results.forEach(pushItem);
+    } else if (Array.isArray(parsed.data)) {
+      parsed.data.forEach(pushItem);
+    } else if (Array.isArray(parsed.accounts)) {
+      parsed.accounts.forEach(pushItem);
+    } else if (Array.isArray(parsed.result)) {
+      parsed.result.forEach(pushItem);
+    } else if (Array.isArray(parsed)) {
+      parsed.forEach(pushItem);
+    } else if (typeof parsed === 'object') {
+      if (parsed.email) {
+        pushItem(parsed);
       } else {
-        Object.values(raw).forEach(v => {
-          if (typeof v === 'object' || Array.isArray(v)) {
+        Object.values(parsed).forEach(v => {
+          if (Array.isArray(v)) {
+            v.forEach(pushItem);
+          } else if (typeof v === 'object' && v !== null && (v as any).email) {
             pushItem(v);
           }
-        });
-      }
-    }
-
-    if (list.length === 0) {
-      for (let i = 1; i <= bulkCount; i++) {
-        list.push({
-          email: `am_premium_${Date.now().toString().slice(-4)}_${i}@gmail.com`,
-          inboxUrl: `https://mail.google.com`
         });
       }
     }
@@ -327,14 +334,21 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
       }
 
       if (data.status !== false) {
+        // Ambil akun ASLI langsung dari respon API
+        const parsedAccounts = parseBulkAccounts(data);
+
+        // Jika API tidak mengembalikan akun, JANGAN potong saldo dan tampilkan error
+        if (parsedAccounts.length === 0) {
+          showToast(data.message || 'Server AM Bulk tidak mengembalikan akun. Saldo Anda aman.', 'error');
+          return;
+        }
+
         const orderId = `AZP-AMB-${Date.now()}`;
         await updateUserBalance(user.uid, -bulkTotalPrice);
 
         await updateDoc(doc(db, 'users', user.uid), {
           hasOrderedAM: true
         });
-
-        const parsedAccounts = parseBulkAccounts(data);
 
         const orderRecord = {
           orderId,
@@ -361,7 +375,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
           price: bulkTotalPrice,
           accounts: parsedAccounts
         });
-        showToast(`Berhasil order ${bulkCount} akun Alight Motion Bulk!`, 'success');
+        showToast(`Berhasil order ${parsedAccounts.length} akun Alight Motion Bulk!`, 'success');
       } else {
         showToast(data.message || 'Gagal memproses AM Bulk. Saldo Anda aman.', 'error');
       }

@@ -14,6 +14,55 @@ import {
 import { db, collection, query, where, orderBy, onSnapshot } from '../firebase';
 import { OrderItem, DepositItem, BulkAccountItem } from '../types';
 
+// Helper to extract REAL accounts directly from raw API response in Firestore
+function extractRealAccounts(data: any): BulkAccountItem[] {
+  const list: BulkAccountItem[] = [];
+
+  const pushItem = (item: any) => {
+    if (!item) return;
+    if (typeof item === 'string') {
+      const parts = item.split('|');
+      if (parts.length > 1) {
+        list.push({ email: parts[0].trim(), inboxUrl: parts[1].trim() });
+      } else if (item.trim()) {
+        list.push({ email: item.trim(), inboxUrl: '' });
+      }
+    } else if (typeof item === 'object') {
+      const em = String(item.email || item.gmail || item.user || '').trim();
+      const inb = String(item.inboxUrl || item.inbox_url || item.inbox || item.url || item.link || '').trim();
+      if (em) {
+        list.push({ email: em, inboxUrl: inb });
+      }
+    }
+  };
+
+  // 1. Cek data.response mentah dari API Zyvor
+  if (data?.response) {
+    try {
+      const raw = typeof data.response === 'string' ? JSON.parse(data.response) : data.response;
+      if (Array.isArray(raw?.results)) {
+        raw.results.forEach(pushItem);
+      } else if (Array.isArray(raw?.data)) {
+        raw.data.forEach(pushItem);
+      } else if (Array.isArray(raw?.accounts)) {
+        raw.accounts.forEach(pushItem);
+      }
+      if (list.length > 0) return list;
+    } catch {}
+  }
+
+  // 2. Cek data.accounts yang sudah tersimpan
+  if (Array.isArray(data?.accounts) && data.accounts.length > 0) {
+    const isDummy = data.accounts.some((a: any) => a.email && String(a.email).includes('am_premium_'));
+    if (!isDummy) {
+      data.accounts.forEach(pushItem);
+      if (list.length > 0) return list;
+    }
+  }
+
+  return list;
+}
+
 type CombinedHistoryItem = {
   id: string;
   type: 'order' | 'deposit';
@@ -48,16 +97,22 @@ export const HistoryPage: React.FC = () => {
       snap.forEach((docSnap) => {
         const data = docSnap.data() as OrderItem;
         const isVerif = data.productType === 'AM Verif';
+        const realAccounts = isVerif ? [] : extractRealAccounts(data);
+        const enrichedData = {
+          ...data,
+          accounts: realAccounts.length > 0 ? realAccounts : data.accounts
+        };
+
         ordersList.push({
           id: docSnap.id,
           type: 'order',
-          title: isVerif ? 'Akun Alight Motion Berhasil Premium' : `Order AM Bulk (${data.count || 1} Akun)`,
-          subtitle: isVerif ? (data.targetEmail || 'Akun Premium') : `${data.count || 1} Akun Alight Motion`,
+          title: isVerif ? 'Akun Alight Motion Berhasil Premium' : `Order AM Bulk (${data.count || realAccounts.length || 1} Akun)`,
+          subtitle: isVerif ? (data.targetEmail || 'Akun Premium') : `${data.count || realAccounts.length || 1} Akun Alight Motion`,
           amount: data.price,
           status: data.status === 'Berhasil' ? 'Berhasil' : data.status === 'Pending' ? 'Pending' : 'Gagal',
           date: data.createdAt,
           referenceId: data.orderId,
-          raw: data
+          raw: enrichedData
         });
       });
 
@@ -308,14 +363,15 @@ export const HistoryPage: React.FC = () => {
             {selectedItem.type === 'order' && selectedItem.raw?.productType === 'AM Bulk' && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="text-[11px] font-black text-slate-800 uppercase tracking-wider">
-                    Daftar Akun AM Bulk:
+                  <div className="text-[11px] font-black text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Daftar Akun AM Bulk Resmi:</span>
                   </div>
                   {Array.isArray(selectedItem.raw.accounts) && selectedItem.raw.accounts.length > 1 && (
                     <button
                       onClick={() => {
                         const allText = selectedItem.raw.accounts
-                          .map((acc: BulkAccountItem, i: number) => `Akun #${i+1}:\nGmail: ${acc.email}\nInbox URL: ${acc.inboxUrl || '-'}`)
+                          .map((acc: BulkAccountItem, i: number) => `Akun #${i+1}:\nEmail: ${acc.email}\nInbox URL: ${acc.inboxUrl || '-'}`)
                           .join('\n\n');
                         handleCopy(allText, 'all-accounts');
                       }}
@@ -329,22 +385,24 @@ export const HistoryPage: React.FC = () => {
 
                 {Array.isArray(selectedItem.raw.accounts) && selectedItem.raw.accounts.length > 0 ? (
                   selectedItem.raw.accounts.map((acc: BulkAccountItem, idx: number) => {
-                    const combinedText = `Gmail: ${acc.email}\nInbox URL: ${acc.inboxUrl || ''}`;
+                    const combinedText = `Email: ${acc.email}\nInbox URL: ${acc.inboxUrl || ''}`;
                     return (
                       <div
                         key={`hist-acc-${idx}`}
                         className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-2.5 shadow-sm"
                       >
-                        {/* 1. Gmail Bar */}
+                        {/* 1. Gmail / Email Bar */}
                         <div>
-                          <span className="text-[10px] font-bold text-slate-400 block mb-1">GMAIL:</span>
+                          <span className="text-[10px] font-bold text-slate-400 block mb-1 uppercase tracking-wider">
+                            Gmail / Email Akun:
+                          </span>
                           <div className="flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-xl border border-slate-200">
                             <span className="font-mono font-bold text-slate-900 break-all select-all">
                               {acc.email}
                             </span>
                             <button
                               onClick={() => handleCopy(acc.email, `mail-${idx}`)}
-                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 cursor-pointer"
+                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-colors"
                             >
                               {copiedId === `mail-${idx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                               <span>Salin</span>
@@ -355,7 +413,9 @@ export const HistoryPage: React.FC = () => {
                         {/* 2. Inbox URL Bar */}
                         <div>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold text-slate-400">INBOX URL:</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                              Inbox URL:
+                            </span>
                             {acc.inboxUrl && (
                               <a
                                 href={acc.inboxUrl}
@@ -363,7 +423,7 @@ export const HistoryPage: React.FC = () => {
                                 rel="noopener noreferrer"
                                 className="text-[10px] font-bold text-orange-600 hover:underline inline-flex items-center gap-1"
                               >
-                                <span>Buka Link</span>
+                                <span>Buka Link Inbox</span>
                                 <ExternalLink className="w-3 h-3" />
                               </a>
                             )}
@@ -375,7 +435,7 @@ export const HistoryPage: React.FC = () => {
                             {acc.inboxUrl && (
                               <button
                                 onClick={() => handleCopy(acc.inboxUrl || '', `url-${idx}`)}
-                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 cursor-pointer"
+                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 cursor-pointer transition-colors"
                               >
                                 {copiedId === `url-${idx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                                 <span>Salin</span>
@@ -390,7 +450,7 @@ export const HistoryPage: React.FC = () => {
                           className="w-full py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 active:scale-98 transition-all cursor-pointer"
                         >
                           {copiedId === `both-${idx}` ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
-                          <span>{copiedId === `both-${idx}` ? 'Keduanya Berhasil Disalin!' : 'Salin Keduanya (Gmail & Inbox URL)'}</span>
+                          <span>{copiedId === `both-${idx}` ? 'Keduanya Berhasil Disalin!' : 'Salin Keduanya (Email & Inbox URL)'}</span>
                         </button>
                       </div>
                     );
