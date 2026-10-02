@@ -93,6 +93,10 @@ export interface AppSettings {
   referralTargetReward: number;
   productImageUrl?: string;
   jobGmailText?: string;
+  bqAccountId?: string;
+  bqSecretToken?: string;
+  bqUmkmName?: string;
+  staticQrString?: string;
   customStats?: {
     useManualStats: boolean;
     totalUsers: number;
