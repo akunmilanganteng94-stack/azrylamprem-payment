@@ -1,9 +1,11 @@
-import { setCorsHeaders, parseBody } from '../_shared';
+// Standalone Vercel Serverless Function for /api/chat/validate
 
 const URL_REGEX = /(https?:\/\/|www\.|wa\.me\/|t\.me\/|discord\.gg\/|[a-zA-Z0-9-]+\.(com|id|me|net|org|io|xyz|app|top|biz|info|cc|co))/i;
 
 export default async function handler(req: any, res: any) {
-  setCorsHeaders(res);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -14,7 +16,17 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const body = await parseBody(req);
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = {};
+      }
+    } else if (!body) {
+      body = {};
+    }
+
     const { text } = body;
     if (!text || typeof text !== 'string') {
       return res.status(400).json({ error: 'Teks pesan diperlukan' });
