@@ -47,7 +47,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
       {/* Overlay Backdrop */}
       <div 
         onClick={onClose}
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in"
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in cursor-pointer"
       />
 
       {/* Drawer */}
@@ -69,10 +69,9 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 <p className="text-xs font-medium text-slate-500">Premium Store</p>
               </div>
             </div>
-
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200 flex items-center justify-center transition-colors"
+              className="w-8 h-8 rounded-xl bg-slate-100 text-slate-500 hover:text-slate-800 hover:bg-slate-200 flex items-center justify-center transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -83,7 +82,6 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
             <div className="px-3 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
               Menu Utama
             </div>
-
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -94,7 +92,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                     onSelectTab(item.id);
                     onClose();
                   }}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-sm transition-all cursor-pointer ${
                     isActive
                       ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                       : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900'
@@ -117,7 +115,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                     onSelectTab('admin');
                     onClose();
                   }}
-                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                  className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all cursor-pointer ${
                     activeTab === 'admin'
                       ? 'bg-slate-900 text-white shadow-md'
                       : 'bg-orange-50 text-orange-700 hover:bg-orange-100'
@@ -157,13 +155,12 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                   <p className="text-xs text-slate-500 truncate">{user.email}</p>
                 </div>
               </div>
-
               <button
                 onClick={async () => {
                   await logout();
                   onClose();
                 }}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-bold transition-colors"
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-bold transition-colors cursor-pointer"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Keluar</span>
@@ -175,7 +172,7 @@ export const SidebarDrawer: React.FC<SidebarDrawerProps> = ({
                 setAuthModalOpen(true);
                 onClose();
               }}
-              className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 transition-all flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold shadow-md shadow-orange-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               <User className="w-4 h-4" />
               <span>Masuk / Daftar Akun</span>

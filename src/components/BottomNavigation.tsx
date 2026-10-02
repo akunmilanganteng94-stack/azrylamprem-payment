@@ -28,7 +28,7 @@ export const BottomNavigation: React.FC<BottomNavigationProps> = ({
             <button
               key={item.id}
               onClick={() => onSelectTab(item.id)}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all relative ${
+              className={`flex flex-col items-center justify-center py-1 px-3 rounded-2xl transition-all relative cursor-pointer ${
                 isActive ? 'text-orange-500 scale-105' : 'text-slate-400 hover:text-slate-600'
               }`}
             >

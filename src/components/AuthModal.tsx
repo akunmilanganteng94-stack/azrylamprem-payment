@@ -68,7 +68,7 @@ export const AuthModal: React.FC = () => {
       {/* Backdrop */}
       <div
         onClick={() => setAuthModalOpen(false)}
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity cursor-pointer"
       />
 
       {/* Modal Dialog */}
@@ -76,7 +76,7 @@ export const AuthModal: React.FC = () => {
         {/* Close Button */}
         <button
           onClick={() => setAuthModalOpen(false)}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -104,7 +104,7 @@ export const AuthModal: React.FC = () => {
             <button
               type="button"
               onClick={() => setAuthModalMode('login')}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 authModalMode === 'login'
                   ? 'bg-white text-orange-600 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
@@ -115,7 +115,7 @@ export const AuthModal: React.FC = () => {
             <button
               type="button"
               onClick={() => setAuthModalMode('register')}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 authModalMode === 'register'
                   ? 'bg-white text-orange-600 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
@@ -173,7 +173,7 @@ export const AuthModal: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setAuthModalMode('forgot')}
-                    className="text-[11px] font-semibold text-orange-600 hover:underline"
+                    className="text-[11px] font-semibold text-orange-600 hover:underline cursor-pointer"
                   >
                     Lupa Password?
                   </button>
@@ -215,7 +215,7 @@ export const AuthModal: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-sm shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+            className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-sm shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
               <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -236,7 +236,7 @@ export const AuthModal: React.FC = () => {
           <div className="text-center mt-4">
             <button
               onClick={() => setAuthModalMode('login')}
-              className="text-xs font-bold text-orange-600 hover:underline"
+              className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
             >
               Kembali ke Halaman Masuk
             </button>
@@ -256,7 +256,7 @@ export const AuthModal: React.FC = () => {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2.5 transition-all active:scale-98"
+              className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2.5 transition-all active:scale-98 cursor-pointer"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path

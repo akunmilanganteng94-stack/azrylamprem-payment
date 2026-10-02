@@ -26,7 +26,7 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
           <button
             onClick={onOpenSidebar}
             aria-label="Menu"
-            className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-95 hover:bg-white/25 transition-all shadow-sm"
+            className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-95 hover:bg-white/25 transition-all shadow-sm cursor-pointer"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -41,7 +41,7 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
               {!user && (
                 <button
                   onClick={() => setAuthModalOpen(true)}
-                  className="text-[11px] bg-white text-orange-600 font-bold px-2 py-0.5 rounded-full shadow-sm active:scale-95"
+                  className="text-[11px] bg-white text-orange-600 font-bold px-2 py-0.5 rounded-full shadow-sm active:scale-95 cursor-pointer"
                 >
                   Masuk
                 </button>
@@ -55,15 +55,14 @@ export const HeaderNavbar: React.FC<HeaderNavbarProps> = ({
           <button
             onClick={onOpenChat}
             aria-label="Buka Chat Room"
-            className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-95 hover:bg-white/25 transition-all relative shadow-sm"
+            className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-95 hover:bg-white/25 transition-all relative shadow-sm cursor-pointer"
           >
             <MessageCircle className="w-5 h-5" />
           </button>
-
           <button
             onClick={onOpenAnnouncements}
             aria-label="Pengumuman"
-            className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-95 hover:bg-white/25 transition-all relative shadow-sm"
+            className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-white active:scale-95 hover:bg-white/25 transition-all relative shadow-sm cursor-pointer"
           >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
