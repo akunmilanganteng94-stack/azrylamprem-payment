@@ -49,6 +49,8 @@
         "userId": { "type": "string", "maxLength": 128 },
         "userEmail": { "type": "string", "maxLength": 120 },
         "nominal": { "type": "number" },
+        "uniqueCode": { "type": "number" },
+        "totalPayment": { "type": "number" },
         "invoice": { "type": "string", "maxLength": 64 },
         "qrisUrl": { "type": "string", "maxLength": 500 },
         "status": { "type": "string", "enum": ["pending", "paid", "expired", "failed"] },
