@@ -11,7 +11,6 @@ import { BottomNavigation } from './components/BottomNavigation';
 import { ToastContainer } from './components/ToastContainer';
 import { AuthModal } from './components/AuthModal';
 import { AuthPage } from './pages/AuthPage';
-
 import { HomePage } from './pages/HomePage';
 import { OrderPage } from './pages/OrderPage';
 import { DepositPage } from './pages/DepositPage';
@@ -23,18 +22,15 @@ import { CaraKerjaPage } from './pages/CaraKerjaPage';
 import { JobGmailModal } from './pages/JobGmailModal';
 import { AnnouncementsModal } from './pages/AnnouncementsModal';
 import { AdminPanel } from './admin/AdminPanel';
-
 import { db, collection, onSnapshot, query, where } from './firebase';
 
 const AppContent: React.FC = () => {
-  const { user, isAdmin, loading } = useAuth();
-
+  const { user, loading } = useAuth();
   // Active navigation tab
   const [activeTab, setActiveTab] = useState<string>('home');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [jobGmailModalOpen, setJobGmailModalOpen] = useState(false);
   const [announcementsModalOpen, setAnnouncementsModalOpen] = useState(false);
-
   // Unread announcements count
   const [unreadAnnouncements, setUnreadAnnouncements] = useState(1);
 
@@ -101,7 +97,7 @@ const AppContent: React.FC = () => {
       {/* Mobile-first centered frame container */}
       <div className="w-full max-w-md mx-auto bg-slate-50 min-h-screen shadow-2xl relative flex flex-col border-x border-slate-200/50">
         
-        {/* Top Navbar Header (Visible prominently on Home, or adapts) */}
+        {/* Top Navbar Header (Visible prominently on Home) */}
         {activeTab === 'home' && (
           <HeaderNavbar
             onOpenSidebar={() => setSidebarOpen(true)}
