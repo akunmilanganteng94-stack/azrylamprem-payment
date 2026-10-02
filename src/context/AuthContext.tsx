@@ -113,6 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(currentUser);
       if (currentUser) {
         const userDocRef = doc(db, 'users', currentUser.uid);
+
         // Subscribe to user doc
         const unsubProfile = onSnapshot(userDocRef, async (snapshot) => {
           if (snapshot.exists()) {
@@ -194,6 +195,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: isDefaultAdmin ? 'admin' : 'user',
         createdAt: new Date().toISOString()
       };
+
       await setDoc(doc(db, 'users', res.user.uid), newProfile);
       setProfile(newProfile);
       showToast('Pendaftaran akun berhasil!', 'success');
@@ -215,6 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await signInWithPopup(auth, googleProvider);
       const userRef = doc(db, 'users', res.user.uid);
       const snap = await getDoc(userRef);
+
       if (!snap.exists()) {
         const isDefaultAdmin = ADMIN_EMAILS.includes(res.user.email || '');
         const newProfile: UserProfile = {
