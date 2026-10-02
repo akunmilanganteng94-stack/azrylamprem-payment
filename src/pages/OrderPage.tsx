@@ -89,7 +89,15 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: verifEmail.trim() })
       });
-      const data = await res.json();
+      
+      let data: any = null;
+      const textRes = await res.text();
+      try {
+        data = JSON.parse(textRes);
+      } catch {
+        showToast('Respon server tidak valid saat mengirim email verifikasi', 'error');
+        return;
+      }
       
       if (res.ok && data.status !== false) {
         showToast('Email verifikasi berhasil dikirim. Periksa inbox/spam Gmail Anda!', 'success');
@@ -132,7 +140,15 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
           link: verifLink.trim() 
         })
       });
-      const data = await res.json();
+      
+      let data: any = null;
+      const textRes = await res.text();
+      try {
+        data = JSON.parse(textRes);
+      } catch {
+        showToast('Respon server tidak valid saat verifikasi link', 'error');
+        return;
+      }
 
       if (res.ok && data.status !== false) {
         // SUCCESS: Deduct balance
@@ -259,7 +275,15 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ count: String(bulkCount) })
       });
-      const data = await res.json();
+      
+      let data: any = null;
+      const textRes = await res.text();
+      try {
+        data = JSON.parse(textRes);
+      } catch {
+        showToast('Respon server tidak valid saat memproses AM Bulk', 'error');
+        return;
+      }
 
       if (res.ok && data.status !== false) {
         const orderId = `AZP-AMB-${Date.now()}`;

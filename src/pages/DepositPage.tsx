@@ -266,7 +266,15 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
           userEmail: user.email || ''
         })
       });
-      const data = await res.json();
+
+      let data: any = null;
+      const textRes = await res.text();
+      try {
+        data = JSON.parse(textRes);
+      } catch {
+        showToast('Respon server tidak valid atau backend Vercel sedang dimuat', 'error');
+        return;
+      }
 
       if (res.ok && (data.status || data.success)) {
         const payload = data.data || data;
