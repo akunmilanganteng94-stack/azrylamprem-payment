@@ -84,22 +84,34 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
 
     setVerifLoading(true);
     try {
-      const res = await fetch('/api/am/send', {
+      let res = await fetch('/api/am/send', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: verifEmail.trim() })
+        headers: { 'Content-Type': 'application/json', 'X-Endpoint': 'am/send' },
+        body: JSON.stringify({ email: verifEmail.trim(), __endpoint: 'am/send' })
       });
       
       let data: any = null;
-      const textRes = await res.text();
+      let textRes = await res.text();
       try {
         data = JSON.parse(textRes);
       } catch {
+        try {
+          const fbRes = await fetch('/api/index?endpoint=am/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Endpoint': 'am/send' },
+            body: JSON.stringify({ email: verifEmail.trim(), __endpoint: 'am/send' })
+          });
+          const fbText = await fbRes.text();
+          data = JSON.parse(fbText);
+        } catch {}
+      }
+      
+      if (!data) {
         showToast('Respon server tidak valid saat mengirim email verifikasi', 'error');
         return;
       }
-      
-      if (res.ok && data.status !== false) {
+
+      if (data.status !== false) {
         showToast('Email verifikasi berhasil dikirim. Periksa inbox/spam Gmail Anda!', 'success');
         setVerifStep(2);
       } else {
@@ -132,25 +144,42 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
 
     setVerifLoading(true);
     try {
-      const res = await fetch('/api/am/verify', {
+      let res = await fetch('/api/am/verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-Endpoint': 'am/verify' },
         body: JSON.stringify({ 
           email: verifEmail.trim(), 
-          link: verifLink.trim() 
+          link: verifLink.trim(),
+          __endpoint: 'am/verify'
         })
       });
       
       let data: any = null;
-      const textRes = await res.text();
+      let textRes = await res.text();
       try {
         data = JSON.parse(textRes);
       } catch {
+        try {
+          const fbRes = await fetch('/api/index?endpoint=am/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Endpoint': 'am/verify' },
+            body: JSON.stringify({ 
+              email: verifEmail.trim(), 
+              link: verifLink.trim(),
+              __endpoint: 'am/verify'
+            })
+          });
+          const fbText = await fbRes.text();
+          data = JSON.parse(fbText);
+        } catch {}
+      }
+
+      if (!data) {
         showToast('Respon server tidak valid saat verifikasi link', 'error');
         return;
       }
 
-      if (res.ok && data.status !== false) {
+      if (data.status !== false) {
         // SUCCESS: Deduct balance
         const orderId = `AZP-AMV-${Date.now()}`;
         await updateUserBalance(user.uid, -amVerifPrice);
@@ -270,22 +299,34 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
 
     setBulkLoading(true);
     try {
-      const res = await fetch('/api/am/bulk', {
+      let res = await fetch('/api/am/bulk', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ count: String(bulkCount) })
+        headers: { 'Content-Type': 'application/json', 'X-Endpoint': 'am/bulk' },
+        body: JSON.stringify({ count: String(bulkCount), __endpoint: 'am/bulk' })
       });
       
       let data: any = null;
-      const textRes = await res.text();
+      let textRes = await res.text();
       try {
         data = JSON.parse(textRes);
       } catch {
+        try {
+          const fbRes = await fetch('/api/index?endpoint=am/bulk', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Endpoint': 'am/bulk' },
+            body: JSON.stringify({ count: String(bulkCount), __endpoint: 'am/bulk' })
+          });
+          const fbText = await fbRes.text();
+          data = JSON.parse(fbText);
+        } catch {}
+      }
+
+      if (!data) {
         showToast('Respon server tidak valid saat memproses AM Bulk', 'error');
         return;
       }
 
-      if (res.ok && data.status !== false) {
+      if (data.status !== false) {
         const orderId = `AZP-AMB-${Date.now()}`;
         await updateUserBalance(user.uid, -bulkTotalPrice);
 

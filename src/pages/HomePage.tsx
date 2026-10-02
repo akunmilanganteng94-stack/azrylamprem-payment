@@ -278,28 +278,28 @@ export const HomePage: React.FC<HomePageProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 text-center divide-x divide-slate-100">
-          <div className="px-1">
-            <span className="text-[10px] font-semibold text-slate-400 block mb-0.5">
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="bg-slate-50 rounded-2xl p-2.5 sm:p-3 border border-slate-100/80 flex flex-col justify-center">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Total User
             </span>
-            <span className="text-sm sm:text-base font-black text-slate-900">
+            <span className="text-xs sm:text-base font-black text-slate-900 leading-tight">
               {displayUsers.toLocaleString('id-ID')}
             </span>
           </div>
-          <div className="px-1">
-            <span className="text-[10px] font-semibold text-slate-400 block mb-0.5">
+          <div className="bg-orange-50/70 rounded-2xl p-2.5 sm:p-3 border border-orange-100/80 flex flex-col justify-center">
+            <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider block mb-1">
               Order AM
             </span>
-            <span className="text-sm sm:text-base font-black text-orange-600">
+            <span className="text-xs sm:text-base font-black text-orange-600 leading-tight">
               {displayOrders.toLocaleString('id-ID')}
             </span>
           </div>
-          <div className="px-1">
-            <span className="text-[10px] font-semibold text-slate-400 block mb-0.5">
+          <div className="bg-slate-50 rounded-2xl p-2.5 sm:p-3 border border-slate-100/80 flex flex-col justify-center">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
               Total Deposit
             </span>
-            <span className="text-xs sm:text-sm font-black text-slate-900 truncate block">
+            <span className="text-[10px] sm:text-sm font-black text-slate-900 leading-tight whitespace-nowrap overflow-hidden text-ellipsis sm:whitespace-normal">
               {formatRupiah(displayDeposits)}
             </span>
           </div>

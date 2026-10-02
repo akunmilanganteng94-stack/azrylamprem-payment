@@ -257,27 +257,86 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
 
     try {
       const invoice = `AZP-DEP-${Date.now()}`;
-      const res = await fetch('/api/create-qris', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: nominal,
-          invoice,
-          userEmail: user.email || ''
-        })
-      });
+      let payload: any = null;
 
-      let data: any = null;
-      const textRes = await res.text();
+      // 1. Coba panggil serverless backend /api/create-qris
       try {
-        data = JSON.parse(textRes);
-      } catch {
-        showToast('Respon server tidak valid atau backend Vercel sedang dimuat', 'error');
-        return;
+        const res = await fetch('/api/create-qris', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: nominal,
+            invoice,
+            userEmail: user.email || ''
+          })
+        });
+
+        if (res.ok) {
+          const textRes = await res.text();
+          try {
+            const data = JSON.parse(textRes);
+            if (data.status || data.success) {
+              payload = data.data || data;
+            }
+          } catch {}
+        }
+      } catch (err) {
+        console.warn('Backend call notice, falling back to direct gateway:', err);
       }
 
-      if (res.ok && (data.status || data.success)) {
-        const payload = data.data || data;
+      // 2. Jika backend Vercel tidak mengembalikan JSON, panggil langsung API BuatQRIS (CORS didukung penuh)
+      if (!payload) {
+        const accountId = (settings.bqAccountId || 'user_6abf79a7a4eb20.34050239').trim();
+        const secretToken = (settings.bqSecretToken || 'sk_live_106d5dea5067b91f16a3bbdeaaba51146a3d686718ae81650db0b9c1ac2a7fa3').trim();
+        const umkmName = (settings.bqUmkmName || 'AZPREM STORE').trim();
+
+        if (accountId && secretToken) {
+          const formData = new URLSearchParams();
+          formData.append('action', 'api_create_qris');
+          formData.append('account_id', accountId);
+          formData.append('secret_token', secretToken);
+          formData.append('amount', String(nominal));
+          formData.append('description', invoice);
+          formData.append('qris_method', 'qris_two');
+          formData.append('fee_by', 'merchant');
+          formData.append('umkm_name', umkmName);
+
+          const directRes = await fetch('https://api.buatqris.site', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+          });
+
+          const directJson: any = await directRes.json();
+          if (directJson && (directJson.success || directJson.status === 'success') && directJson.data) {
+            const d = directJson.data;
+            const uniqueCode = Number(d.unique_code || d.amount_uniq || 0);
+            const totalPayment = Number(d.total_amount || (nominal + uniqueCode));
+            const qrUrl = d.qr_url || d.qris_image;
+            const qrisImage = d.qris_image || qrUrl;
+
+            payload = {
+              invoice,
+              transaction_id: d.transaction_id,
+              amount: nominal,
+              fee: 0,
+              unique_code: uniqueCode,
+              total_payment: totalPayment,
+              qr_url: qrUrl,
+              qris_image: qrisImage,
+              expired_at: d.expired_at || new Date(Date.now() + 30 * 60 * 1000).toISOString()
+            };
+          } else {
+            showToast(directJson?.message || 'Gagal membuat QRIS dari API BuatQRIS', 'error');
+            return;
+          }
+        } else {
+          showToast('Gateway QRIS belum dikonfigurasi di Admin Panel', 'error');
+          return;
+        }
+      }
+
+      if (payload) {
         const qrUrl = payload.qr_url || payload.qris_url || payload.qris_image;
         const qrisImage = payload.qris_image || payload.qr_url;
         const uniqueCode = Number(payload.unique_code || payload.uniqueCode || 0);
@@ -330,7 +389,7 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
         setPaymentSuccess(false);
         showToast('QRIS berhasil dibuat. Silakan scan pembayaran.', 'success');
       } else {
-        showToast(data.message || 'Gagal membuat QRIS', 'error');
+        showToast('Gagal membuat QRIS', 'error');
       }
     } catch (err: any) {
       showToast(err.message || 'Terjadi kesalahan sistem QRIS', 'error');
@@ -339,19 +398,52 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
     }
   };
 
-  // Manual Check QRIS Status
+  // Manual Check QRIS Status with direct fallback
   const handleCheckStatus = async () => {
     if (!activeDeposit) return;
     setCheckingStatus(true);
     try {
-      const res = await fetch('/api/check-qris', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invoice: activeDeposit.invoice })
-      });
-      const data = await res.json();
+      let isPaid = false;
 
-      if (data.status && data.payment_status === 'paid') {
+      // 1. Cek via backend
+      try {
+        const res = await fetch('/api/check-qris', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invoice: activeDeposit.invoice })
+        });
+        const text = await res.text();
+        const data = JSON.parse(text);
+        if (data.status && data.payment_status === 'paid') {
+          isPaid = true;
+        }
+      } catch {}
+
+      // 2. Fallback cek langsung ke BuatQRIS API
+      if (!isPaid) {
+        const accountId = (settings.bqAccountId || 'user_6abf79a7a4eb20.34050239').trim();
+        const secretToken = (settings.bqSecretToken || 'sk_live_106d5dea5067b91f16a3bbdeaaba51146a3d686718ae81650db0b9c1ac2a7fa3').trim();
+        if (accountId && secretToken) {
+          const formData = new URLSearchParams();
+          formData.append('action', 'api_check_status');
+          formData.append('account_id', accountId);
+          formData.append('secret_token', secretToken);
+          formData.append('invoice', activeDeposit.invoice);
+
+          const directRes = await fetch('https://api.buatqris.site', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
+          });
+          const dj: any = await directRes.json();
+          const st = String(dj?.status || dj?.data?.status || '').toLowerCase();
+          if (st === 'success' || st === 'paid' || st === 'settlement' || st === 'berhasil') {
+            isPaid = true;
+          }
+        }
+      }
+
+      if (isPaid) {
         await completePayment(activeDeposit.invoice, activeDeposit.nominal);
       } else {
         showToast('Pembayaran belum terdeteksi. Sistem mengecek otomatis setiap saat...', 'info');
