@@ -1,0 +1,134 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with balance and referral information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "nama": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 120 },
+        "saldo": { "type": "number" },
+        "totalOrder": { "type": "number" },
+        "totalDeposit": { "type": "number" },
+        "referralCode": { "type": "string", "maxLength": 20 },
+        "referredBy": { "type": "string", "maxLength": 50 },
+        "bonusReferral": { "type": "number" },
+        "statusAkun": { "type": "string", "enum": ["aktif", "suspended"] },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "muteUntil": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["uid", "nama", "email"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Alight Motion Premium order record",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 120 },
+        "productType": { "type": "string", "enum": ["AM Verif", "AM Bulk"] },
+        "product": { "type": "string" },
+        "targetEmail": { "type": "string", "maxLength": 120 },
+        "count": { "type": "number" },
+        "price": { "type": "number" },
+        "status": { "type": "string", "enum": ["Berhasil", "Gagal", "Pending"] },
+        "response": { "type": "string", "maxLength": 5000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["orderId", "userId", "productType", "price", "status"]
+    },
+    "Deposit": {
+      "title": "Deposit",
+      "description": "Deposit transaction via QRIS",
+      "type": "object",
+      "properties": {
+        "depositId": { "type": "string", "maxLength": 64 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "userEmail": { "type": "string", "maxLength": 120 },
+        "nominal": { "type": "number" },
+        "invoice": { "type": "string", "maxLength": 64 },
+        "qrisUrl": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["pending", "paid", "expired", "failed"] },
+        "createdAt": { "type": "string" },
+        "paidAt": { "type": "string" }
+      },
+      "required": ["depositId", "userId", "nominal", "invoice", "status"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Realtime chat message between user and admin",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "chatId": { "type": "string", "maxLength": 128 },
+        "senderId": { "type": "string", "maxLength": 128 },
+        "senderName": { "type": "string", "maxLength": 100 },
+        "senderRole": { "type": "string", "enum": ["user", "admin"] },
+        "text": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "senderId", "text"]
+    },
+    "Announcement": {
+      "title": "Announcement",
+      "description": "System broadcast announcement",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 150 },
+        "content": { "type": "string", "maxLength": 2000 },
+        "type": { "type": "string", "enum": ["info", "penting", "promo"] },
+        "isActive": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "isActive"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "App configuration",
+      "type": "object",
+      "properties": {
+        "websiteName": { "type": "string" },
+        "bannerTitle": { "type": "string" },
+        "bannerSubtitle": { "type": "string" },
+        "currentRate": { "type": "number" },
+        "amVerifPrice": { "type": "number" },
+        "amBulkPrice": { "type": "number" },
+        "amVerifActive": { "type": "boolean" },
+        "amBulkActive": { "type": "boolean" },
+        "minDeposit": { "type": "number" },
+        "maxDeposit": { "type": "number" },
+        "referralBonusPercent": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Alight motion orders"
+    },
+    "/deposits/{depositId}": {
+      "schema": "Deposit",
+      "description": "Deposit transactions"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Chat messages"
+    },
+    "/announcements/{announcementId}": {
+      "schema": "Announcement",
+      "description": "Announcements"
+    },
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "Global application settings"
+    }
+  }
+}
