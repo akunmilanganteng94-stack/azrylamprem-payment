@@ -9,7 +9,6 @@ import {
   X, 
   Check, 
   ExternalLink,
-  Mail,
   Sparkles
 } from 'lucide-react';
 import { db, collection, query, where, orderBy, onSnapshot } from '../firebase';
@@ -29,7 +28,6 @@ type CombinedHistoryItem = {
 
 export const HistoryPage: React.FC = () => {
   const { user, showToast, setAuthModalOpen } = useAuth();
-  
   const [filter, setFilter] = useState<'Semua' | 'Order' | 'Deposit' | 'Berhasil' | 'Pending' | 'Gagal'>('Semua');
   const [historyItems, setHistoryItems] = useState<CombinedHistoryItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<CombinedHistoryItem | null>(null);
@@ -135,7 +133,7 @@ export const HistoryPage: React.FC = () => {
           <button
             key={cat}
             onClick={() => setFilter(cat)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
               filter === cat
                 ? 'bg-orange-500 text-white shadow-md shadow-orange-500/20'
                 : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -156,7 +154,7 @@ export const HistoryPage: React.FC = () => {
           </p>
           <button
             onClick={() => setAuthModalOpen(true)}
-            className="px-5 py-2.5 bg-orange-500 text-white text-xs font-bold rounded-xl shadow-md"
+            className="px-5 py-2.5 bg-orange-500 text-white text-xs font-bold rounded-xl shadow-md cursor-pointer"
           >
             Masuk Sekarang
           </button>
@@ -177,6 +175,7 @@ export const HistoryPage: React.FC = () => {
             const isOrder = item.type === 'order';
             const isSuccess = item.status === 'Berhasil';
             const isPending = item.status === 'Pending';
+
             return (
               <div
                 key={item.id || item.referenceId || `hist-${idx}`}
@@ -233,8 +232,9 @@ export const HistoryPage: React.FC = () => {
         <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
           <div
             onClick={() => setSelectedItem(null)}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm cursor-pointer"
           />
+
           <div className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full p-5 z-10 border border-slate-100 space-y-4 animate-in fade-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-black text-slate-900">
@@ -242,7 +242,7 @@ export const HistoryPage: React.FC = () => {
               </h3>
               <button
                 onClick={() => setSelectedItem(null)}
-                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200"
+                className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -271,20 +271,18 @@ export const HistoryPage: React.FC = () => {
                 <span className="text-slate-500">Nomor Transaksi:</span>
                 <button
                   onClick={() => handleCopy(selectedItem.referenceId, 'ref')}
-                  className="font-mono font-bold text-slate-800 flex items-center gap-1 hover:text-orange-600"
+                  className="font-mono font-bold text-slate-800 flex items-center gap-1 hover:text-orange-600 cursor-pointer"
                 >
                   <span>{selectedItem.referenceId}</span>
                   {copiedId === 'ref' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-400" />}
                 </button>
               </div>
-
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Layanan:</span>
                 <span className="font-bold text-slate-800">
                   {selectedItem.title}
                 </span>
               </div>
-
               <div className="flex items-center justify-between">
                 <span className="text-slate-500">Waktu:</span>
                 <span className="font-semibold text-slate-800">
@@ -321,7 +319,7 @@ export const HistoryPage: React.FC = () => {
                           .join('\n\n');
                         handleCopy(allText, 'all-accounts');
                       }}
-                      className="text-[10px] font-bold text-orange-600 hover:underline flex items-center gap-1"
+                      className="text-[10px] font-bold text-orange-600 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <Copy className="w-3 h-3" />
                       <span>{copiedId === 'all-accounts' ? 'Semua Disalin!' : 'Salin Semua'}</span>
@@ -346,7 +344,7 @@ export const HistoryPage: React.FC = () => {
                             </span>
                             <button
                               onClick={() => handleCopy(acc.email, `mail-${idx}`)}
-                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1"
+                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 cursor-pointer"
                             >
                               {copiedId === `mail-${idx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                               <span>Salin</span>
@@ -377,7 +375,7 @@ export const HistoryPage: React.FC = () => {
                             {acc.inboxUrl && (
                               <button
                                 onClick={() => handleCopy(acc.inboxUrl || '', `url-${idx}`)}
-                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1"
+                                className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 cursor-pointer"
                               >
                                 {copiedId === `url-${idx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                                 <span>Salin</span>
@@ -389,7 +387,7 @@ export const HistoryPage: React.FC = () => {
                         {/* 3. Button Salin Keduanya (Gmail & Inbox URL) */}
                         <button
                           onClick={() => handleCopy(combinedText, `both-${idx}`)}
-                          className="w-full py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 active:scale-98 transition-all"
+                          className="w-full py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 active:scale-98 transition-all cursor-pointer"
                         >
                           {copiedId === `both-${idx}` ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
                           <span>{copiedId === `both-${idx}` ? 'Keduanya Berhasil Disalin!' : 'Salin Keduanya (Gmail & Inbox URL)'}</span>
@@ -407,7 +405,7 @@ export const HistoryPage: React.FC = () => {
 
             <button
               onClick={() => setSelectedItem(null)}
-              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-colors"
+              className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl transition-colors cursor-pointer"
             >
               Tutup
             </button>

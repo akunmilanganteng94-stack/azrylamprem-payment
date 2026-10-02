@@ -11,7 +11,6 @@ import {
   Layers, 
   ExternalLink,
   AlertOctagon,
-  Mail,
   Check
 } from 'lucide-react';
 import { db, doc, setDoc, updateDoc } from '../firebase';
@@ -23,7 +22,6 @@ interface OrderPageProps {
 
 export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
   const { user, profile, settings, updateUserBalance, showToast, setAuthModalOpen } = useAuth();
-  
   const [selectedProduct, setSelectedProduct] = useState<'verif' | 'bulk'>('verif');
 
   // AM Verif state
@@ -58,7 +56,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
     navigator.clipboard.writeText(txt);
     setCopiedEmail(id);
     setTimeout(() => setCopiedEmail(null), 2000);
-    showToast('Email disalin ke clipboard', 'info');
+    showToast('Tersalin ke clipboard', 'info');
   };
 
   // Handler for AM Verif Step 1: Send Gmail
@@ -141,7 +139,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
         const orderId = `AZP-AMV-${Date.now()}`;
         await updateUserBalance(user.uid, -amVerifPrice);
 
-        // Mark user as having ordered AM at least once (for referral validation!)
+        // Mark user as having ordered AM at least once
         await updateDoc(doc(db, 'users', user.uid), {
           hasOrderedAM: true
         });
@@ -159,7 +157,6 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
           response: typeof data === 'object' ? JSON.stringify(data) : String(data),
           createdAt: new Date().toISOString()
         };
-
         try {
           await setDoc(doc(db, 'orders', orderId), orderRecord);
         } catch (dbErr) {
@@ -226,7 +223,6 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
       }
     }
 
-    // Fallback if empty to dummy preview
     if (list.length === 0) {
       for (let i = 1; i <= bulkCount; i++) {
         list.push({
@@ -266,19 +262,15 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
       const data = await res.json();
 
       if (res.ok && data.status !== false) {
-        // SUCCESS: Deduct balance
         const orderId = `AZP-AMB-${Date.now()}`;
         await updateUserBalance(user.uid, -bulkTotalPrice);
 
-        // Mark user as having ordered AM at least once
         await updateDoc(doc(db, 'users', user.uid), {
           hasOrderedAM: true
         });
 
-        // Parse ONLY email and inboxUrl
         const parsedAccounts = parseBulkAccounts(data);
 
-        // Save order to Firestore
         const orderRecord = {
           orderId,
           userId: user.uid,
@@ -292,7 +284,6 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
           response: typeof data === 'object' ? JSON.stringify(data) : String(data),
           createdAt: new Date().toISOString()
         };
-
         try {
           await setDoc(doc(db, 'orders', orderId), orderRecord);
         } catch (dbErr) {
@@ -307,7 +298,6 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
         });
         showToast(`Berhasil order ${bulkCount} akun Alight Motion Bulk!`, 'success');
       } else {
-        // FAILED: Do NOT deduct balance
         showToast(data.message || 'Gagal memproses AM Bulk. Saldo Anda aman.', 'error');
       }
     } catch (err: any) {
@@ -339,7 +329,6 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
 
       {/* Product Hero Card */}
       <div className="bg-white rounded-3xl p-4 border border-slate-100 shadow-md flex items-center gap-4">
-        {/* Full square image with border-radius: 15px */}
         <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-[15px] overflow-hidden shrink-0 shadow-md border border-slate-100 bg-slate-900">
           <img
             src={settings.productImageUrl || ALIGHT_MOTION_IMAGE}
@@ -347,7 +336,6 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
             className="w-full h-full object-cover"
           />
         </div>
-
         <div className="flex-1 min-w-0">
           <div className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase bg-orange-100 text-orange-700 px-2 py-0.5 rounded-md mb-1">
             <Sparkles className="w-3 h-3" /> Akun Premium
@@ -375,7 +363,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
             setVerifStep(1);
             setVerifSuccessData(null);
           }}
-          className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 transition-all ${
+          className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
             selectedProduct === 'verif'
               ? 'bg-white text-orange-600 shadow-md'
               : 'text-slate-500 hover:text-slate-900'
@@ -392,7 +380,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
             setSelectedProduct('bulk');
             setBulkSuccessData(null);
           }}
-          className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 transition-all ${
+          className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
             selectedProduct === 'bulk'
               ? 'bg-white text-orange-600 shadow-md'
               : 'text-slate-500 hover:text-slate-900'
@@ -414,7 +402,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
           </div>
           <button
             onClick={onGoToDeposit}
-            className="text-xs font-extrabold bg-amber-500 text-white px-2.5 py-1 rounded-xl shadow-sm hover:bg-amber-600 active:scale-95 transition-all"
+            className="text-xs font-extrabold bg-amber-500 text-white px-2.5 py-1 rounded-xl shadow-sm hover:bg-amber-600 active:scale-95 transition-all cursor-pointer"
           >
             Deposit
           </button>
@@ -457,7 +445,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
                   setVerifEmail('');
                   setVerifLink('');
                 }}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-colors"
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
               >
                 Order AM Verif Lagi
               </button>
@@ -492,7 +480,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
               <button
                 type="submit"
                 disabled={verifLoading || !isVerifActive}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {verifLoading ? (
                   <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -533,14 +521,14 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
                 <button
                   type="button"
                   onClick={() => setVerifStep(1)}
-                  className="py-3 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition-colors"
+                  className="py-3 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   Ubah Email
                 </button>
                 <button
                   type="submit"
                   disabled={verifLoading}
-                  className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                 >
                   {verifLoading ? (
                     <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -596,7 +584,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
                           .join('\n\n');
                         copyText(allText, 'all-order-bulk');
                       }}
-                      className="text-[10px] font-bold text-orange-600 hover:underline flex items-center gap-1"
+                      className="text-[10px] font-bold text-orange-600 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <Copy className="w-3 h-3" />
                       <span>{copiedEmail === 'all-order-bulk' ? 'Semua Disalin!' : 'Salin Semua Akun'}</span>
@@ -620,7 +608,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
                           </span>
                           <button
                             onClick={() => copyText(acc.email, `acc-mail-${idx}`)}
-                            className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 border border-slate-200"
+                            className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 border border-slate-200 cursor-pointer"
                           >
                             {copiedEmail === `acc-mail-${idx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                             <span>Salin</span>
@@ -651,7 +639,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
                           {acc.inboxUrl && (
                             <button
                               onClick={() => copyText(acc.inboxUrl || '', `acc-url-${idx}`)}
-                              className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 border border-slate-200"
+                              className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-700 rounded-lg text-[10px] font-bold shrink-0 flex items-center gap-1 border border-slate-200 cursor-pointer"
                             >
                               {copiedEmail === `acc-url-${idx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
                               <span>Salin</span>
@@ -663,7 +651,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
                       {/* Salin Keduanya */}
                       <button
                         onClick={() => copyText(combined, `acc-both-${idx}`)}
-                        className="w-full py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 active:scale-98 transition-all"
+                        className="w-full py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-[11px] shadow-sm flex items-center justify-center gap-1.5 active:scale-98 transition-all cursor-pointer"
                       >
                         {copiedEmail === `acc-both-${idx}` ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
                         <span>{copiedEmail === `acc-both-${idx}` ? 'Keduanya Berhasil Disalin!' : 'Salin Keduanya (Gmail & Inbox URL)'}</span>
@@ -675,7 +663,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
 
               <button
                 onClick={() => setBulkSuccessData(null)}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-colors mt-2"
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-colors mt-2 cursor-pointer"
               >
                 Order AM Bulk Lagi
               </button>
@@ -692,7 +680,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
                       key={cnt}
                       type="button"
                       onClick={() => setBulkCount(cnt)}
-                      className={`py-3 rounded-2xl font-black text-sm transition-all border ${
+                      className={`py-3 rounded-2xl font-black text-sm transition-all border cursor-pointer ${
                         bulkCount === cnt
                           ? 'bg-orange-500 text-white border-orange-500 shadow-md shadow-orange-500/25 scale-105'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:border-orange-300'
@@ -727,7 +715,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
                 type="button"
                 onClick={handleProcessBulk}
                 disabled={bulkLoading || !isBulkActive}
-                className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 {bulkLoading ? (
                   <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>

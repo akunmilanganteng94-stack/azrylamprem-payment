@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { X, Mail, CheckCircle2, Send, Info, AlertCircle } from 'lucide-react';
+import { X, Mail, CheckCircle2, Send, Info } from 'lucide-react';
 import { db, collection, addDoc } from '../firebase';
 
 interface JobGmailModalProps {
@@ -11,11 +11,9 @@ interface JobGmailModalProps {
 
 export const JobGmailModal: React.FC<JobGmailModalProps> = ({
   isOpen,
-  onClose,
-  onGoToChat
+  onClose
 }) => {
   const { user, profile, showToast, setAuthModalOpen } = useAuth();
-  
   const [gmailAddress, setGmailAddress] = useState('');
   const [gmailPassword, setGmailPassword] = useState('');
   const [recoveryEmail, setRecoveryEmail] = useState('');
@@ -50,7 +48,6 @@ export const JobGmailModal: React.FC<JobGmailModalProps> = ({
         status: 'pending',
         createdAt: new Date().toISOString()
       });
-
       setSubmitted(true);
       showToast('Job Gmail berhasil dikirim untuk diverifikasi!', 'success');
     } catch (err: any) {
@@ -62,12 +59,11 @@ export const JobGmailModal: React.FC<JobGmailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-      <div onClick={onClose} className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" />
-
+      <div onClick={onClose} className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm cursor-pointer" />
       <div className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 z-10 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100"
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -100,7 +96,7 @@ export const JobGmailModal: React.FC<JobGmailModalProps> = ({
                 setNotes('');
                 onClose();
               }}
-              className="w-full py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow"
+              className="w-full py-2.5 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow cursor-pointer"
             >
               Selesai
             </button>
@@ -172,7 +168,7 @@ export const JobGmailModal: React.FC<JobGmailModalProps> = ({
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md active:scale-98 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl shadow-md active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>

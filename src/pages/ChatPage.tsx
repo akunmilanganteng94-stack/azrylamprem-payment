@@ -4,7 +4,6 @@ import { formatDate } from '../utils/constants';
 import { 
   Send, 
   AlertTriangle, 
-  Clock, 
   ShieldAlert, 
   Users, 
   Sparkles,
@@ -25,12 +24,10 @@ import { ChatMessage } from '../types';
 
 export const ChatPage: React.FC = () => {
   const { user, profile, isAdmin, showToast } = useAuth();
-  
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [muteRemaining, setMuteRemaining] = useState<number>(0);
-
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Check if user is currently muted
@@ -39,13 +36,11 @@ export const ChatPage: React.FC = () => {
       setMuteRemaining(0);
       return;
     }
-
     const checkMute = () => {
       const now = Date.now();
       const diff = Math.max(0, Math.floor((profile.muteUntil! - now) / 1000));
       setMuteRemaining(diff);
     };
-
     checkMute();
     const interval = setInterval(checkMute, 1000);
     return () => clearInterval(interval);
@@ -55,7 +50,6 @@ export const ChatPage: React.FC = () => {
   useEffect(() => {
     const messagesRef = collection(db, 'community_chats');
     const q = query(messagesRef, orderBy('createdAt', 'asc'), limit(150));
-
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs: ChatMessage[] = [];
       snapshot.forEach((docSnap) => {
@@ -68,7 +62,6 @@ export const ChatPage: React.FC = () => {
     }, (err) => {
       console.warn('Community chat listener notice:', err);
     });
-
     return () => unsubscribe();
   }, []);
 
@@ -76,7 +69,6 @@ export const ChatPage: React.FC = () => {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
     if (muteRemaining > 0) {
       showToast(`Anda sedang dibisukan. Tunggu ${formatRemaining(muteRemaining)}`, 'error');
       return;
@@ -108,7 +100,6 @@ export const ChatPage: React.FC = () => {
         await updateDoc(doc(db, 'users', user.uid), {
           muteUntil: muteUntilTime
         });
-
         setInputText('');
         showToast('Pesan berisi link/URL tidak diperbolehkan. Akun Anda dibisukan selama 30 menit.', 'error');
         setSending(false);
@@ -123,7 +114,6 @@ export const ChatPage: React.FC = () => {
         text: trimmed,
         createdAt: new Date().toISOString()
       };
-
       await addDoc(collection(db, 'community_chats'), messageData);
       setInputText('');
     } catch (err: any) {
@@ -157,7 +147,6 @@ export const ChatPage: React.FC = () => {
             <p className="text-xs text-slate-500">Ruang diskusi sesama member aktif</p>
           </div>
         </div>
-
         <div className="text-right">
           <span className="text-[10px] bg-emerald-50 text-emerald-700 font-extrabold px-2.5 py-1 rounded-full border border-emerald-100 flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-emerald-500" />
@@ -190,6 +179,7 @@ export const ChatPage: React.FC = () => {
           messages.map((msg, idx) => {
             const isMe = msg.senderId === user?.uid;
             const isMsgAdmin = msg.senderRole === 'admin';
+
             return (
               <div
                 key={msg.id || `msg-${idx}`}
@@ -261,7 +251,7 @@ export const ChatPage: React.FC = () => {
           <button
             type="submit"
             disabled={muteRemaining > 0 || sending || !inputText.trim() || !user}
-            className="w-10 h-10 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-500/20 active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none"
+            className="w-10 h-10 rounded-xl bg-orange-500 hover:bg-orange-600 text-white flex items-center justify-center shadow-md shadow-orange-500/20 active:scale-95 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
           >
             {sending ? (
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>

@@ -6,17 +6,14 @@ import {
   Copy, 
   Gift, 
   Check, 
-  Sparkles,
-  ShoppingBag,
-  Clock,
-  CheckCircle2
+  Clock, 
+  CheckCircle2 
 } from 'lucide-react';
 import { db, collection, query, where, onSnapshot } from '../firebase';
 import { UserProfile } from '../types';
 
 export const ReferralPage: React.FC = () => {
   const { user, profile, settings, showToast, setAuthModalOpen } = useAuth();
-  
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [referredUsers, setReferredUsers] = useState<UserProfile[]>([]);
@@ -33,12 +30,10 @@ export const ReferralPage: React.FC = () => {
   // Fetch list of users registered using this user's referral code in real-time
   useEffect(() => {
     if (!profile?.referralCode) return;
-
     const q = query(
       collection(db, 'users'),
       where('referredBy', '==', profile.referralCode)
     );
-
     const unsub = onSnapshot(q, (snapshot) => {
       const list: UserProfile[] = [];
       snapshot.forEach(docSnap => {
@@ -86,6 +81,7 @@ export const ReferralPage: React.FC = () => {
             <Gift className="w-3.5 h-3.5 text-amber-200" />
             <span>Target: {formatRupiah(targetReward)} / {targetFriends} Teman</span>
           </div>
+
           <div>
             <h3 className="text-xl font-black tracking-tight">
               Ajak 20 Teman, Dapatkan Rp10.000!
@@ -142,7 +138,7 @@ export const ReferralPage: React.FC = () => {
           </h4>
           <button
             onClick={() => setAuthModalOpen(true)}
-            className="w-full py-2.5 bg-orange-500 text-white font-bold text-xs rounded-xl shadow-md"
+            className="w-full py-2.5 bg-orange-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer"
           >
             Masuk / Daftar Akun
           </button>
@@ -159,7 +155,7 @@ export const ReferralPage: React.FC = () => {
               </div>
               <button
                 onClick={() => copyToClipboard(referralCode, false)}
-                className="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95 transition-all"
+                className="px-4 py-2.5 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer"
               >
                 {copiedCode ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 <span>{copiedCode ? 'Disalin' : 'Salin'}</span>
@@ -180,7 +176,7 @@ export const ReferralPage: React.FC = () => {
               />
               <button
                 onClick={() => copyToClipboard(referralLink, true)}
-                className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors"
+                className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
               >
                 {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
               </button>
@@ -225,7 +221,6 @@ export const ReferralPage: React.FC = () => {
                       </span>
                     </div>
                   </div>
-
                   <div className="text-right shrink-0">
                     {hasOrdered ? (
                       <span className="inline-flex items-center gap-1 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">

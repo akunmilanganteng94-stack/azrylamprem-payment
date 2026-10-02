@@ -97,7 +97,7 @@ export const CaraKerjaPage: React.FC<CaraKerjaPageProps> = ({ onGoToOrder }) => 
       <div className="pt-2">
         <button
           onClick={onGoToOrder}
-          className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-2xl font-black text-sm shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2"
+          className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-2xl font-black text-sm shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer"
         >
           <Zap className="w-4 h-4" />
           <span>Mulai Order Sekarang</span>

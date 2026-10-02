@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Mail, Lock, User, ArrowRight, Sparkles, ShieldCheck } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Sparkles } from 'lucide-react';
 
 export const AuthPage: React.FC = () => {
   const {
@@ -87,7 +87,7 @@ export const AuthPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setMode('login')}
-              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
+              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 mode === 'login'
                   ? 'bg-white text-orange-600 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
@@ -98,7 +98,7 @@ export const AuthPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setMode('register')}
-              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${
+              className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
                 mode === 'register'
                   ? 'bg-white text-orange-600 shadow-sm'
                   : 'text-slate-500 hover:text-slate-800'
@@ -156,7 +156,7 @@ export const AuthPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setMode('forgot')}
-                    className="text-[11px] font-semibold text-orange-600 hover:underline"
+                    className="text-[11px] font-semibold text-orange-600 hover:underline cursor-pointer"
                   >
                     Lupa Password?
                   </button>
@@ -198,7 +198,7 @@ export const AuthPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-sm shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+            className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-bold text-sm shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer"
           >
             {loading ? (
               <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
@@ -219,7 +219,7 @@ export const AuthPage: React.FC = () => {
           <div className="text-center mt-4">
             <button
               onClick={() => setMode('login')}
-              className="text-xs font-bold text-orange-600 hover:underline"
+              className="text-xs font-bold text-orange-600 hover:underline cursor-pointer"
             >
               Kembali ke Halaman Masuk
             </button>
@@ -239,7 +239,7 @@ export const AuthPage: React.FC = () => {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2.5 transition-all active:scale-98"
+              className="w-full py-2.5 px-4 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2.5 transition-all active:scale-98 cursor-pointer"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path

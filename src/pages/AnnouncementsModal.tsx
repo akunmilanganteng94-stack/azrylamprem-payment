@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Bell, Sparkles, AlertCircle, Info, Tag } from 'lucide-react';
+import { X, Bell } from 'lucide-react';
 import { db, collection, query, orderBy, onSnapshot } from '../firebase';
 import { AnnouncementItem } from '../types';
 import { formatDate } from '../utils/constants';
@@ -27,7 +27,6 @@ export const AnnouncementsModal: React.FC<AnnouncementsModalProps> = ({
       });
       setAnnouncements(list);
     }, (err) => console.warn('Announcements notice:', err));
-
     return () => unsub();
   }, []);
 
@@ -35,8 +34,7 @@ export const AnnouncementsModal: React.FC<AnnouncementsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
-      <div onClick={onClose} className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm" />
-
+      <div onClick={onClose} className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm cursor-pointer" />
       <div className="relative bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 z-10 border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 max-h-[85vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 shrink-0">
@@ -51,7 +49,7 @@ export const AnnouncementsModal: React.FC<AnnouncementsModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700"
+            className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -71,6 +69,7 @@ export const AnnouncementsModal: React.FC<AnnouncementsModalProps> = ({
             announcements.map((item) => {
               const isPenting = item.type === 'penting';
               const isPromo = item.type === 'promo';
+
               return (
                 <div
                   key={item.id}
@@ -98,7 +97,6 @@ export const AnnouncementsModal: React.FC<AnnouncementsModalProps> = ({
                       {formatDate(item.createdAt)}
                     </span>
                   </div>
-
                   <h4 className="text-xs sm:text-sm font-black text-slate-900">
                     {item.title}
                   </h4>
@@ -115,7 +113,7 @@ export const AnnouncementsModal: React.FC<AnnouncementsModalProps> = ({
         <div className="pt-2 shrink-0">
           <button
             onClick={onClose}
-            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors"
+            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
           >
             Tutup
           </button>

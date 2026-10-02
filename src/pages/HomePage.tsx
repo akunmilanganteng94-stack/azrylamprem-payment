@@ -26,7 +26,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onOpenJobGmail
 }) => {
   const { profile, settings, user, setAuthModalOpen } = useAuth();
-  
+
   // Real Firestore statistics
   const [realUsersCount, setRealUsersCount] = useState<number>(0);
   const [realOrdersCount, setRealOrdersCount] = useState<number>(0);
@@ -66,9 +66,11 @@ export const HomePage: React.FC<HomePageProps> = ({
   const displayUsers = settings.customStats?.useManualStats
     ? (settings.customStats.totalUsers ?? realUsersCount)
     : realUsersCount;
+
   const displayOrders = settings.customStats?.useManualStats
     ? (settings.customStats.totalOrders ?? realOrdersCount)
     : realOrdersCount;
+
   const displayDeposits = settings.customStats?.useManualStats
     ? (settings.customStats.totalDeposits ?? realDepositsSum)
     : realDepositsSum;
@@ -182,7 +184,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 onSelectTab('deposit');
               }
             }}
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-md shadow-orange-500/25 active:scale-98 transition-all"
+            className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-md shadow-orange-500/25 active:scale-98 transition-all cursor-pointer"
           >
             <Wallet className="w-4 h-4" />
             <span>Deposit</span>
@@ -190,7 +192,7 @@ export const HomePage: React.FC<HomePageProps> = ({
 
           <button
             onClick={() => onSelectTab('order')}
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-md shadow-slate-900/10 active:scale-98 transition-all"
+            className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-md shadow-slate-900/10 active:scale-98 transition-all cursor-pointer"
           >
             <Zap className="w-4 h-4 text-amber-400" />
             <span>Order</span>
@@ -214,7 +216,7 @@ export const HomePage: React.FC<HomePageProps> = ({
           </p>
           <button
             onClick={() => onSelectTab('order')}
-            className="inline-flex items-center gap-2 bg-white text-orange-600 hover:bg-orange-50 font-black text-xs px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95"
+            className="inline-flex items-center gap-2 bg-white text-orange-600 hover:bg-orange-50 font-black text-xs px-4 py-2.5 rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
           >
             <span>Mulai Sekarang</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -238,7 +240,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             <button
               key={srv.id}
               onClick={srv.action}
-              className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-100 shadow-sm hover:shadow-md hover:border-orange-200 flex flex-col items-center text-center transition-all group active:scale-95"
+              className="bg-white rounded-2xl p-2.5 sm:p-3 border border-slate-100 shadow-sm hover:shadow-md hover:border-orange-200 flex flex-col items-center text-center transition-all group active:scale-95 cursor-pointer"
             >
               {srv.isImage ? (
                 <div className="w-11 h-11 rounded-xl overflow-hidden shadow-sm mb-1.5 border border-slate-100 group-hover:scale-105 transition-transform bg-slate-50">
@@ -275,6 +277,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             Real-time
           </span>
         </div>
+
         <div className="grid grid-cols-3 gap-2 text-center divide-x divide-slate-100">
           <div className="px-1">
             <span className="text-[10px] font-semibold text-slate-400 block mb-0.5">
@@ -284,7 +287,6 @@ export const HomePage: React.FC<HomePageProps> = ({
               {displayUsers.toLocaleString('id-ID')}
             </span>
           </div>
-
           <div className="px-1">
             <span className="text-[10px] font-semibold text-slate-400 block mb-0.5">
               Order AM
@@ -293,7 +295,6 @@ export const HomePage: React.FC<HomePageProps> = ({
               {displayOrders.toLocaleString('id-ID')}
             </span>
           </div>
-
           <div className="px-1">
             <span className="text-[10px] font-semibold text-slate-400 block mb-0.5">
               Total Deposit

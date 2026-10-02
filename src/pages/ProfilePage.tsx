@@ -3,15 +3,12 @@ import { useAuth } from '../context/AuthContext';
 import { formatRupiah, formatDate } from '../utils/constants';
 import { 
   User, 
-  Mail, 
   Wallet, 
   ShieldCheck, 
   Key, 
   LogOut, 
-  Sparkles, 
   Copy, 
   Check, 
-  Calendar,
   ExternalLink,
   ChevronRight
 } from 'lucide-react';
@@ -25,11 +22,9 @@ interface ProfilePageProps {
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({
   onGoToDeposit,
-  onGoToReferral,
   onGoToAdmin
 }) => {
   const { user, profile, isAdmin, logout, resetPassword, showToast, setAuthModalOpen } = useAuth();
-  
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState(profile?.nama || '');
   const [savingName, setSavingName] = useState(false);
@@ -80,7 +75,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         </p>
         <button
           onClick={() => setAuthModalOpen(true)}
-          className="w-full max-w-xs mx-auto py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-sm rounded-2xl shadow-md active:scale-95 transition-all"
+          className="w-full max-w-xs mx-auto py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-black text-sm rounded-2xl shadow-md active:scale-95 transition-all cursor-pointer"
         >
           Masuk / Daftar
         </button>
@@ -106,7 +101,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-slate-900 to-slate-700 text-white flex items-center justify-center font-black text-xl shadow-md">
             {(profile?.nama || user.displayName || user.email || 'U')[0].toUpperCase()}
           </div>
-
           <div className="flex-1 min-w-0">
             {editingName ? (
               <div className="flex items-center gap-2">
@@ -119,7 +113,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 <button
                   onClick={handleUpdateName}
                   disabled={savingName}
-                  className="px-2.5 py-1 bg-orange-500 text-white text-xs font-bold rounded-lg"
+                  className="px-2.5 py-1 bg-orange-500 text-white text-xs font-bold rounded-lg cursor-pointer"
                 >
                   Simpan
                 </button>
@@ -137,16 +131,15 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                     setNewName(profile?.nama || '');
                     setEditingName(true);
                   }}
-                  className="text-[11px] font-bold text-orange-600 hover:underline"
+                  className="text-[11px] font-bold text-orange-600 hover:underline cursor-pointer"
                 >
                   Ubah
                 </button>
               </div>
             )}
-
             <div className="flex items-center gap-2 mt-2">
               <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full">
-                ● Status: {profile?.statusAkun || 'Aktif'}
+                Status: {profile?.statusAkun || 'Aktif'}
               </span>
               {isAdmin && (
                 <span className="text-[10px] font-extrabold bg-orange-100 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full flex items-center gap-0.5">
@@ -169,7 +162,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
           <button
             onClick={onGoToDeposit}
-            className="px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-xs rounded-xl shadow-sm hover:from-orange-600 active:scale-95 transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-xs rounded-xl shadow-sm hover:from-orange-600 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Wallet className="w-3.5 h-3.5" />
             <span>Deposit</span>
@@ -182,40 +175,35 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
           Detail Akun
         </h4>
-
         <div className="divide-y divide-slate-100 text-xs">
           <div className="py-2.5 flex items-center justify-between">
             <span className="text-slate-500">Kode Referral</span>
             <button
               onClick={copyCode}
-              className="font-mono font-bold text-orange-600 flex items-center gap-1.5 hover:opacity-80"
+              className="font-mono font-bold text-orange-600 flex items-center gap-1.5 hover:opacity-80 cursor-pointer"
             >
               <span>{profile?.referralCode || '-'}</span>
               {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
             </button>
           </div>
-
           <div className="py-2.5 flex items-center justify-between">
             <span className="text-slate-500">Bonus Referral</span>
             <span className="font-bold text-slate-800">
               {formatRupiah(profile?.bonusReferral || 0)}
             </span>
           </div>
-
           <div className="py-2.5 flex items-center justify-between">
             <span className="text-slate-500">Total Order</span>
             <span className="font-bold text-slate-800">
               {profile?.totalOrder || 0} Transaksi
             </span>
           </div>
-
           <div className="py-2.5 flex items-center justify-between">
             <span className="text-slate-500">Total Deposit</span>
             <span className="font-bold text-slate-800">
               {formatRupiah(profile?.totalDeposit || 0)}
             </span>
           </div>
-
           <div className="py-2.5 flex items-center justify-between">
             <span className="text-slate-500">Tanggal Daftar</span>
             <span className="font-medium text-slate-700">
@@ -230,7 +218,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         {isAdmin && (
           <button
             onClick={onGoToAdmin}
-            className="w-full flex items-center justify-between p-3 rounded-2xl text-left hover:bg-orange-50 text-orange-700 font-bold text-xs transition-colors"
+            className="w-full flex items-center justify-between p-3 rounded-2xl text-left hover:bg-orange-50 text-orange-700 font-bold text-xs transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
@@ -246,10 +234,9 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
             <ChevronRight className="w-4 h-4 text-orange-400" />
           </button>
         )}
-
         <button
           onClick={handleResetPass}
-          className="w-full flex items-center justify-between p-3 rounded-2xl text-left hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors"
+          className="w-full flex items-center justify-between p-3 rounded-2xl text-left hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
@@ -259,12 +246,11 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
           <ChevronRight className="w-4 h-4 text-slate-400" />
         </button>
-
         <a
           href="https://www.azryl.my.id/"
           target="_blank"
           rel="noopener noreferrer"
-          className="w-full flex items-center justify-between p-3 rounded-2xl text-left hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors"
+          className="w-full flex items-center justify-between p-3 rounded-2xl text-left hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
@@ -279,7 +265,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
       {/* Logout Button */}
       <button
         onClick={logout}
-        className="w-full py-3.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-black text-xs rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-sm"
+        className="w-full py-3.5 bg-rose-50 hover:bg-rose-100 text-rose-600 font-black text-xs rounded-2xl transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
       >
         <LogOut className="w-4 h-4" />
         <span>Keluar dari Akun</span>
