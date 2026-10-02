@@ -201,18 +201,44 @@ export default async function handler(req: any, res: any) {
   // ROUTE 5: Check QRIS Status (/api/check-qris)
   if (detected.includes('check-qris') || detected === 'check') {
     try {
-      const { invoice, transactionId } = body;
+      let { invoice, transactionId, qrUrl } = body;
+
+      // Extract transaction_id from qrUrl if missing
+      if (!transactionId && qrUrl) {
+        const match = String(qrUrl).match(/\/qris\/([A-Za-z0-9_-]+)/);
+        if (match && match[1]) {
+          transactionId = match[1].replace('.png', '');
+        }
+      }
+
+      // If still missing, attempt to fetch deposit doc from Firestore REST
+      if (!transactionId && invoice) {
+        try {
+          const fsDepRes = await fetch(
+            `https://firestore.googleapis.com/v1/projects/azrylstore-7f4e2/databases/(default)/documents/deposits/${invoice}`
+          );
+          if (fsDepRes.ok) {
+            const fsDepData: any = await fsDepRes.json();
+            const f = fsDepData.fields || {};
+            if (f.transactionId?.stringValue) transactionId = f.transactionId.stringValue;
+            else if (f.qrUrl?.stringValue) {
+              const m = f.qrUrl.stringValue.match(/\/qris\/([A-Za-z0-9_-]+)/);
+              if (m && m[1]) transactionId = m[1].replace('.png', '');
+            }
+          }
+        } catch {}
+      }
+
       const settings = await getGlobalSettings();
       const accountId = settings.bqAccountId;
       const secretToken = settings.bqSecretToken;
 
-      if (accountId && secretToken) {
+      if (accountId && secretToken && transactionId) {
         const formData = new URLSearchParams();
         formData.append('action', 'api_check_status');
         formData.append('account_id', accountId.trim());
         formData.append('secret_token', secretToken.trim());
-        if (transactionId) formData.append('transaction_id', transactionId);
-        else formData.append('invoice', invoice);
+        formData.append('transaction_id', transactionId.trim());
 
         const bqResponse = await fetch('https://api.buatqris.site', {
           method: 'POST',
@@ -223,11 +249,11 @@ export default async function handler(req: any, res: any) {
 
         const st = String(bqData.status || bqData.data?.status || bqData.payment_status || '').toLowerCase();
         if (st === 'success' || st === 'paid' || st === 'settlement' || st === 'berhasil') {
-          return res.status(200).json({ status: true, payment_status: 'paid', raw: bqData });
+          return res.status(200).json({ status: true, payment_status: 'paid', transaction_id: transactionId, raw: bqData });
         }
       }
 
-      return res.status(200).json({ status: true, payment_status: 'pending', message: 'Menunggu pembayaran' });
+      return res.status(200).json({ status: true, payment_status: 'pending', transaction_id: transactionId || null, message: 'Menunggu pembayaran' });
     } catch (err: any) {
       return res.status(500).json({ status: false, message: err?.message || 'Gagal memeriksa status' });
     }
