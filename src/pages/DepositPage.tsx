@@ -153,6 +153,16 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
     }
   };
 
+  // Helper to extract transaction_id from activeDeposit, payload, or QR URL
+  const getDepositTxId = (dep: any): string => {
+    if (dep?.transactionId) return dep.transactionId;
+    if (dep?.transaction_id) return dep.transaction_id;
+    const qr = dep?.qrUrl || dep?.qrisUrl || dep?.qrisImage || '';
+    const match = String(qr).match(/\/qris\/([A-Za-z0-9_-]+)/);
+    if (match && match[1]) return match[1].replace('.png', '');
+    return '';
+  };
+
   // 1. DEPOSIT MASUK OTOMATIS: Real-time Firestore snapshot listener
   useEffect(() => {
     if (!activeDeposit || paymentSuccess) return;
@@ -172,28 +182,71 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
     return () => unsub();
   }, [activeDeposit, paymentSuccess]);
 
-  // 2. DEPOSIT MASUK OTOMATIS: Background auto-polling check every 3.5 seconds
+  // 2. DEPOSIT MASUK OTOMATIS: Background auto-polling check every 3 seconds (Backend + Direct BuatQRIS API)
   useEffect(() => {
     if (!activeDeposit || paymentSuccess) return;
 
-    const interval = setInterval(async () => {
+    const txId = getDepositTxId(activeDeposit);
+
+    const checkPayment = async () => {
+      let isPaid = false;
+
+      // A. Cek via backend Vercel
       try {
         const res = await fetch('/api/check-qris', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invoice: activeDeposit.invoice })
+          headers: { 'Content-Type': 'application/json', 'X-Endpoint': 'check-qris' },
+          body: JSON.stringify({
+            invoice: activeDeposit.invoice,
+            transactionId: txId,
+            qrUrl: activeDeposit.qrUrl || activeDeposit.qrisImage,
+            __endpoint: 'check-qris'
+          })
         });
-        const data = await res.json();
-        if (data.status && data.payment_status === 'paid' && !paymentSuccess) {
-          completePayment(activeDeposit.invoice, activeDeposit.nominal);
+        const text = await res.text();
+        const data = JSON.parse(text);
+        if (data && (data.payment_status === 'paid' || data.status === 'paid')) {
+          isPaid = true;
         }
-      } catch (e) {
-        // silent background poll
-      }
-    }, 3500);
+      } catch {}
 
+      // B. Cek langsung ke BuatQRIS API (fallback tanpa ketergantungan serverless)
+      if (!isPaid && txId) {
+        try {
+          const accountId = (settings.bqAccountId || 'user_6abf79a7a4eb20.34050239').trim();
+          const secretToken = (settings.bqSecretToken || 'sk_live_106d5dea5067b91f16a3bbdeaaba51146a3d686718ae81650db0b9c1ac2a7fa3').trim();
+          if (accountId && secretToken) {
+            const formData = new URLSearchParams();
+            formData.append('action', 'api_check_status');
+            formData.append('account_id', accountId);
+            formData.append('secret_token', secretToken);
+            formData.append('transaction_id', txId);
+
+            const directRes = await fetch('https://api.buatqris.site', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: formData.toString()
+            });
+            const dj: any = await directRes.json();
+            const st = String(dj?.status || dj?.data?.status || dj?.payment_status || '').toLowerCase();
+            if (st === 'success' || st === 'paid' || st === 'settlement' || st === 'berhasil') {
+              isPaid = true;
+            }
+          }
+        } catch {}
+      }
+
+      if (isPaid && !paymentSuccess && !hasCompletedRef.current) {
+        completePayment(activeDeposit.invoice, activeDeposit.nominal);
+      }
+    };
+
+    // Jalankan segera saat pertama kali dimuat
+    checkPayment();
+
+    const interval = setInterval(checkPayment, 3000);
     return () => clearInterval(interval);
-  }, [activeDeposit, paymentSuccess]);
+  }, [activeDeposit, paymentSuccess, settings]);
 
   // Handle Download QR image
   const handleDownloadQR = async () => {
@@ -342,10 +395,12 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
         const uniqueCode = Number(payload.unique_code || payload.uniqueCode || 0);
         // Fee dihapus: HANYA deposit + kode unik
         const totalPayment = Number(payload.total_payment || (nominal + uniqueCode));
+        const txId = payload.transaction_id || getDepositTxId(payload);
 
         const depositDoc = {
           depositId: invoice,
           invoice,
+          transactionId: txId,
           userId: user.uid,
           userEmail: user.email || '',
           nominal,
@@ -369,6 +424,7 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
         const newDeposit = {
           depositId: invoice,
           invoice,
+          transactionId: txId,
           nominal,
           uniqueCode,
           totalPayment,
@@ -402,6 +458,8 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
   const handleCheckStatus = async () => {
     if (!activeDeposit) return;
     setCheckingStatus(true);
+    const txId = getDepositTxId(activeDeposit);
+
     try {
       let isPaid = false;
 
@@ -409,18 +467,23 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
       try {
         const res = await fetch('/api/check-qris', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invoice: activeDeposit.invoice })
+          headers: { 'Content-Type': 'application/json', 'X-Endpoint': 'check-qris' },
+          body: JSON.stringify({
+            invoice: activeDeposit.invoice,
+            transactionId: txId,
+            qrUrl: activeDeposit.qrUrl || activeDeposit.qrisImage,
+            __endpoint: 'check-qris'
+          })
         });
         const text = await res.text();
         const data = JSON.parse(text);
-        if (data.status && data.payment_status === 'paid') {
+        if (data && (data.payment_status === 'paid' || data.status === 'paid')) {
           isPaid = true;
         }
       } catch {}
 
       // 2. Fallback cek langsung ke BuatQRIS API
-      if (!isPaid) {
+      if (!isPaid && txId) {
         const accountId = (settings.bqAccountId || 'user_6abf79a7a4eb20.34050239').trim();
         const secretToken = (settings.bqSecretToken || 'sk_live_106d5dea5067b91f16a3bbdeaaba51146a3d686718ae81650db0b9c1ac2a7fa3').trim();
         if (accountId && secretToken) {
@@ -428,7 +491,7 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
           formData.append('action', 'api_check_status');
           formData.append('account_id', accountId);
           formData.append('secret_token', secretToken);
-          formData.append('invoice', activeDeposit.invoice);
+          formData.append('transaction_id', txId);
 
           const directRes = await fetch('https://api.buatqris.site', {
             method: 'POST',
@@ -436,7 +499,7 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
             body: formData.toString()
           });
           const dj: any = await directRes.json();
-          const st = String(dj?.status || dj?.data?.status || '').toLowerCase();
+          const st = String(dj?.status || dj?.data?.status || dj?.payment_status || '').toLowerCase();
           if (st === 'success' || st === 'paid' || st === 'settlement' || st === 'berhasil') {
             isPaid = true;
           }
