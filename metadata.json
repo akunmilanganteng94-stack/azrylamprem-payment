@@ -1,6 +1,6 @@
 {
-  "name": "AZPREM - Alight Motion Premium Store",
-  "description": "Platform penjualan Alight Motion Premium cepat, aman, dan terpercaya dengan sistem otomatis.",
+  "name": "AZRYLPREM",
+  "description": "AZRYLPREM - Platform Premium Digital, AM Prem & HD Tools",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
