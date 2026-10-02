@@ -1,7 +1,9 @@
-import { setCorsHeaders, parseBody, getGlobalSettings, memoryPaymentStore } from './_shared';
+// Standalone Vercel Serverless Function for /api/check-qris
 
 export default async function handler(req: any, res: any) {
-  setCorsHeaders(res);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -12,24 +14,37 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const body = await parseBody(req);
-    const { invoice } = body;
-    if (!invoice) {
-      return res.status(400).json({ status: false, message: 'Invoice diperlukan' });
+    let body = req.body;
+    if (typeof body === 'string') {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        body = {};
+      }
+    } else if (!body) {
+      body = {};
     }
 
-    const item = memoryPaymentStore[invoice];
-    if (item && item.status === 'paid') {
-      return res.status(200).json({
-        status: true,
-        payment_status: 'paid',
-        message: 'Pembayaran telah berhasil diterima'
-      });
+    const { invoice, transactionId } = body;
+    if (!invoice && !transactionId) {
+      return res.status(400).json({ status: false, message: 'Invoice atau Transaction ID diperlukan' });
     }
 
-    const settings = await getGlobalSettings();
-    const accountId = settings.bqAccountId;
-    const secretToken = settings.bqSecretToken;
+    // Get credentials from Firestore REST or env
+    let accountId = process.env.BQ_ACCOUNT_ID;
+    let secretToken = process.env.BQ_SECRET_TOKEN;
+
+    try {
+      const fsRes = await fetch(
+        'https://firestore.googleapis.com/v1/projects/azrylstore-7f4e2/databases/(default)/documents/settings/global'
+      );
+      if (fsRes.ok) {
+        const fsData: any = await fsRes.json();
+        const f = fsData.fields || {};
+        if (f.bqAccountId?.stringValue) accountId = f.bqAccountId.stringValue;
+        if (f.bqSecretToken?.stringValue) secretToken = f.bqSecretToken.stringValue;
+      }
+    } catch {}
 
     if (accountId && secretToken) {
       try {
@@ -37,8 +52,8 @@ export default async function handler(req: any, res: any) {
         formData.append('action', 'api_check_status');
         formData.append('account_id', accountId.trim());
         formData.append('secret_token', secretToken.trim());
-        if (item?.transactionId) {
-          formData.append('transaction_id', item.transactionId);
+        if (transactionId) {
+          formData.append('transaction_id', transactionId);
         } else {
           formData.append('invoice', invoice);
         }
@@ -52,7 +67,6 @@ export default async function handler(req: any, res: any) {
 
         const st = String(bqData.status || bqData.data?.status || bqData.payment_status || '').toLowerCase();
         if (st === 'success' || st === 'paid' || st === 'settlement' || st === 'berhasil') {
-          if (item) item.status = 'paid';
           return res.status(200).json({
             status: true,
             payment_status: 'paid',
@@ -60,17 +74,16 @@ export default async function handler(req: any, res: any) {
           });
         }
       } catch (err) {
-        console.warn('BuatQRIS status check notice:', err);
+        console.warn('Status check notice:', err);
       }
     }
 
     return res.status(200).json({
       status: true,
-      payment_status: item?.status || 'pending',
+      payment_status: 'pending',
       message: 'Menunggu pembayaran'
     });
   } catch (error: any) {
-    console.error('Error in /api/check-qris:', error);
-    return res.status(500).json({ status: false, message: 'Gagal mengecek status QRIS' });
+    return res.status(500).json({ status: false, message: error?.message || 'Gagal mengecek status' });
   }
 }
