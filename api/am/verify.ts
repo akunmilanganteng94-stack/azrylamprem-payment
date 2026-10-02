@@ -13,28 +13,27 @@ export default async function handler(req: any, res: any) {
 
   try {
     const body = await parseBody(req);
-    const { count } = body;
-    const numCount = parseInt(String(count), 10);
-    if (isNaN(numCount) || numCount < 1 || numCount > 5) {
-      return res.status(400).json({ status: false, message: 'Jumlah harus antara 1 sampai 5' });
+    const { email, link } = body;
+    if (!email || !link) {
+      return res.status(400).json({ status: false, message: 'Email dan link verifikasi diperlukan' });
     }
 
-    const response = await fetch('https://api.zyvor.my.id/api/am/bulkv3', {
+    const response = await fetch('https://api.zyvor.my.id/api/am/verify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'AZPREM-App/1.0'
       },
-      body: JSON.stringify({ count: String(numCount) })
+      body: JSON.stringify({ email: email.trim(), link: link.trim() })
     });
 
     const data: any = await response.json().catch(() => ({ status: response.ok, message: response.statusText }));
     return res.status(response.status).json(data);
   } catch (error: any) {
-    console.error('Error in /api/am/bulk:', error);
+    console.error('Error in /api/am/verify:', error);
     return res.status(500).json({
       status: false,
-      message: error?.message || 'Gagal memproses AM Bulk'
+      message: error?.message || 'Gagal memverifikasi akun AM'
     });
   }
 }
