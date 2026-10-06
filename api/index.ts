@@ -304,6 +304,34 @@ export default async function handler(req: any, res: any) {
     return res.status(200).json({ status: true, message: 'Webhook acknowledged', timestamp: new Date().toISOString() });
   }
 
+  // ROUTE 9: Search Preset AM (/api/am/preset)
+  if (detected.includes('preset')) {
+    try {
+      const rawUrl = (req.query?.url as string) || body?.url;
+      if (!rawUrl || typeof rawUrl !== 'string') {
+        return res.status(400).json({ ok: false, message: 'URL video TikTok diperlukan' });
+      }
+
+      const apiUrl = `https://api.nexadev.my.id/api/ampreset/?url=${encodeURIComponent(rawUrl.trim())}`;
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json'
+        }
+      });
+
+      const data = await response.json().catch(() => null);
+      if (!data) {
+        return res.status(502).json({ ok: false, message: 'Respon dari server preset tidak valid' });
+      }
+
+      return res.status(200).json(data);
+    } catch (err: any) {
+      return res.status(500).json({ ok: false, message: err?.message || 'Gagal mencari preset AM' });
+    }
+  }
+
   // DEFAULT ROOT / API HEALTH
   return res.status(200).json({
     status: 'ok',
