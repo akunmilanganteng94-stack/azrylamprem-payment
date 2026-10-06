@@ -23,7 +23,15 @@ import {
   Lock,
   Unlock,
   Package,
-  Copy
+  Copy,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Check,
+  Sparkles,
+  Filter,
+  X,
+  Zap
 } from 'lucide-react';
 import { 
   db, 
@@ -73,7 +81,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   // Search queries
   const [searchUser, setSearchUser] = useState('');
   const [orderFilter, setOrderFilter] = useState<'All' | 'Berhasil' | 'Gagal' | 'Pending'>('All');
+  const [orderSection, setOrderSection] = useState<'all' | 'bulk' | 'verif'>('all');
+  const [orderSearch, setOrderSearch] = useState('');
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [depositFilter, setDepositFilter] = useState<'All' | 'paid' | 'pending' | 'failed'>('All');
+
+  const copyAdminText = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+    showToast('Teks berhasil disalin ke clipboard', 'info');
+  };
 
   // Edit balance modal
   const [editingBalanceUser, setEditingBalanceUser] = useState<UserProfile | null>(null);
@@ -225,6 +244,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   // Dashboard Stats Calculations
   const totalUser = usersList.length;
   const totalOrder = ordersList.length;
+  const bulkOrders = ordersList.filter(o => o.productType === 'AM Bulk');
+  const verifOrders = ordersList.filter(o => o.productType === 'AM Verif');
   const orderBerhasil = ordersList.filter(o => o.status === 'Berhasil').length;
   const orderGagal = ordersList.filter(o => o.status === 'Gagal').length;
   const totalDepositAmount = depositsList
@@ -581,6 +602,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => {
+                          setOrderSearch(u.email || '');
+                          setOrderSection('all');
+                          setActiveTab('orders');
+                        }}
+                        className="p-1.5 bg-orange-50 hover:bg-orange-100 rounded-lg text-orange-600 text-xs font-bold cursor-pointer"
+                        title="Cek Pesanan User Ini (Bulk & Verif)"
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
                           setEditingBalanceUser(u);
                           setBalanceDelta('0');
                         }}
@@ -652,69 +684,337 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* TAB 3: ORDER MANAGEMENT */}
-      {activeTab === 'orders' && (
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-slate-900">
-              Semua Order AM ({ordersList.length})
-            </h3>
-            <div className="flex items-center gap-1">
-              {(['All', 'Berhasil', 'Gagal', 'Pending'] as const).map(st => (
-                <button
-                  key={st}
-                  onClick={() => setOrderFilter(st)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold cursor-pointer ${orderFilter === st ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600'}`}
-                >
-                  {st}
-                </button>
-              ))}
+      {/* TAB 3: ORDER MANAGEMENT (BAGIAN 1: AM BULK & BAGIAN 2: AM VERIF) */}
+      {activeTab === 'orders' && (() => {
+        const filteredOrders = ordersList.filter(o => {
+          // 1. Filter section (all / bulk / verif)
+          if (orderSection === 'bulk' && o.productType !== 'AM Bulk') return false;
+          if (orderSection === 'verif' && o.productType !== 'AM Verif') return false;
+
+          // 2. Filter status (All / Berhasil / Gagal / Pending)
+          if (orderFilter !== 'All' && o.status !== orderFilter) return false;
+
+          // 3. Search query
+          if (orderSearch.trim()) {
+            const q = orderSearch.toLowerCase().trim();
+            const matchUser = (o.userEmail || '').toLowerCase().includes(q);
+            const matchTarget = (o.targetEmail || '').toLowerCase().includes(q);
+            const matchOrder = (o.orderId || '').toLowerCase().includes(q);
+            const matchAccounts = Array.isArray(o.accounts) && o.accounts.some(acc => 
+              (acc.email || '').toLowerCase().includes(q) || (acc.inboxUrl || '').toLowerCase().includes(q)
+            );
+            if (!matchUser && !matchTarget && !matchOrder && !matchAccounts) return false;
+          }
+
+          return true;
+        });
+
+        return (
+          <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm space-y-4">
+            {/* Header & Title */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse"></span>
+                  <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                    Kelola Pesanan Alight Motion
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Cek user & rincian pesanan: Bagian 1 (AM Bulk) dan Bagian 2 (AM Verif)
+                </p>
+              </div>
+
+              {/* Quick Search Input */}
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={orderSearch}
+                  onChange={(e) => setOrderSearch(e.target.value)}
+                  placeholder="Cari user, email target, ID..."
+                  className="w-full pl-8 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all placeholder:text-slate-400"
+                />
+                {orderSearch && (
+                  <button
+                    onClick={() => setOrderSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    title="Hapus filter pencarian"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Section Switcher Tabs: Bagian 1 (Bulk) & Bagian 2 (Verif) */}
+            <div className="grid grid-cols-3 gap-1.5 p-1 bg-slate-100 rounded-2xl">
+              <button
+                onClick={() => setOrderSection('all')}
+                className={`py-2 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  orderSection === 'all'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span>Semua Order</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-200 text-slate-700">
+                  {ordersList.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setOrderSection('bulk')}
+                className={`py-2 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  orderSection === 'bulk'
+                    ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/25'
+                    : 'text-slate-600 hover:text-indigo-600'
+                }`}
+              >
+                <span>Bagian 1: Bulk</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${orderSection === 'bulk' ? 'bg-indigo-700 text-white' : 'bg-indigo-100 text-indigo-700'}`}>
+                  {bulkOrders.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setOrderSection('verif')}
+                className={`py-2 px-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  orderSection === 'verif'
+                    ? 'bg-amber-600 text-white shadow-sm shadow-amber-600/25'
+                    : 'text-slate-600 hover:text-amber-600'
+                }`}
+              >
+                <span>Bagian 2: Verif</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${orderSection === 'verif' ? 'bg-amber-700 text-white' : 'bg-amber-100 text-amber-700'}`}>
+                  {verifOrders.length}
+                </span>
+              </button>
+            </div>
+
+            {/* Status Filter Buttons */}
+            <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1">
+              <div className="flex items-center gap-1">
+                {(['All', 'Berhasil', 'Pending', 'Gagal'] as const).map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setOrderFilter(st)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      orderFilter === st
+                        ? 'bg-slate-900 text-white shadow-sm'
+                        : 'bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {st === 'All' ? 'Semua Status' : st}
+                  </button>
+                ))}
+              </div>
+
+              {orderSearch && (
+                <span className="text-[11px] font-bold text-orange-600 bg-orange-50 px-2.5 py-1 rounded-xl border border-orange-200 shrink-0">
+                  Filter User: "{orderSearch}"
+                </span>
+              )}
+            </div>
+
+            {/* Orders List Container */}
+            <div className="space-y-3 max-h-[550px] overflow-y-auto pr-0.5">
+              {filteredOrders.length === 0 ? (
+                <div className="text-center py-12 text-slate-400 space-y-2">
+                  <ShoppingBag className="w-10 h-10 mx-auto text-slate-300" />
+                  <p className="text-xs font-bold">Tidak ada pesanan yang sesuai filter</p>
+                </div>
+              ) : (
+                filteredOrders.map((o, idx) => {
+                  const isBulk = o.productType === 'AM Bulk';
+                  const isSuccess = o.status === 'Berhasil';
+                  const isPending = o.status === 'Pending';
+                  const isExpanded = expandedOrderId === (o.orderId || o.id);
+                  const accountsCount = Array.isArray(o.accounts) ? o.accounts.length : (o.count || 1);
+
+                  return (
+                    <div
+                      key={o.orderId || o.id || `order-${idx}`}
+                      className={`p-4 rounded-2xl border transition-all shadow-sm ${
+                        isBulk
+                          ? 'bg-white border-indigo-100 hover:border-indigo-200'
+                          : 'bg-white border-amber-100 hover:border-amber-200'
+                      }`}
+                    >
+                      {/* Top Row: Section Badge, Price, & Status */}
+                      <div className="flex items-center justify-between gap-2 mb-2.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {isBulk ? (
+                            <span className="px-2.5 py-1 rounded-xl text-[10.5px] font-black bg-indigo-50 text-indigo-700 border border-indigo-200/80 flex items-center gap-1">
+                              <Package className="w-3 h-3 text-indigo-600" />
+                              <span>BAGIAN 1: AM BULK</span>
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-xl text-[10.5px] font-black bg-amber-50 text-amber-700 border border-amber-200/80 flex items-center gap-1">
+                              <Zap className="w-3 h-3 text-amber-600" />
+                              <span>BAGIAN 2: AM VERIF</span>
+                            </span>
+                          )}
+                          <span className="font-mono text-xs font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-lg">
+                            {formatRupiah(o.price)}
+                          </span>
+                        </div>
+
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
+                            isSuccess
+                              ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
+                              : isPending
+                              ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                              : 'bg-rose-100 text-rose-800 border border-rose-200'
+                          }`}
+                        >
+                          {isSuccess ? (
+                            <CheckCircle2 className="w-3 h-3 text-white" />
+                          ) : isPending ? (
+                            <Clock className="w-3 h-3 text-amber-700" />
+                          ) : (
+                            <AlertTriangle className="w-3 h-3 text-rose-700" />
+                          )}
+                          <span>{o.status}</span>
+                        </span>
+                      </div>
+
+                      {/* User Details & Order Info */}
+                      <div className="bg-slate-50/80 rounded-xl p-3 space-y-1.5 text-xs border border-slate-100 mb-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 text-[11px]">User Pemesan:</span>
+                          <div className="flex items-center gap-1 font-bold text-slate-800">
+                            <span>{o.userEmail}</span>
+                            <button
+                              onClick={() => copyAdminText(o.userEmail || '', `mail-${idx}`)}
+                              className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                              title="Salin Email User"
+                            >
+                              {copiedId === `mail-${idx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400 text-[11px]">ID Transaksi:</span>
+                          <div className="flex items-center gap-1 font-mono text-[11px] font-bold text-slate-700">
+                            <span>{o.orderId}</span>
+                            <button
+                              onClick={() => copyAdminText(o.orderId || '', `id-${idx}`)}
+                              className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                              title="Salin Order ID"
+                            >
+                              {copiedId === `id-${idx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400">Waktu:</span>
+                          <span className="text-slate-600 font-medium">{formatDate(o.createdAt)}</span>
+                        </div>
+                      </div>
+
+                      {/* Section Specific View */}
+                      {isBulk ? (
+                        /* BAGIAN 1: AM BULK ACCOUNTS ACCORDION */
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between bg-indigo-50/60 p-2.5 rounded-xl border border-indigo-100">
+                            <span className="text-xs font-bold text-indigo-900">
+                              Total {accountsCount} Akun AM Premium
+                            </span>
+                            <button
+                              onClick={() => setExpandedOrderId(isExpanded ? null : (o.orderId || o.id || null))}
+                              className="px-2.5 py-1 bg-white hover:bg-indigo-100 text-indigo-700 rounded-lg text-[11px] font-bold border border-indigo-200 flex items-center gap-1 cursor-pointer transition-colors"
+                            >
+                              <span>{isExpanded ? 'Tutup Akun' : 'Lihat Akun & Inbox'}</span>
+                              {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            </button>
+                          </div>
+
+                          {/* Expanded Accounts List */}
+                          {isExpanded && Array.isArray(o.accounts) && o.accounts.length > 0 && (
+                            <div className="space-y-2 pt-1 animate-in fade-in">
+                              {o.accounts.map((acc, aIdx) => (
+                                <div
+                                  key={`acc-${idx}-${aIdx}`}
+                                  className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1.5"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase">
+                                      Akun #{aIdx + 1} Gmail:
+                                    </span>
+                                    <div className="flex items-center gap-1 font-mono font-bold text-slate-900">
+                                      <span className="select-all">{acc.email}</span>
+                                      <button
+                                        onClick={() => copyAdminText(acc.email, `acc-${idx}-${aIdx}`)}
+                                        className="p-1 hover:bg-slate-200 rounded cursor-pointer"
+                                        title="Salin Email"
+                                      >
+                                        {copiedId === `acc-${idx}-${aIdx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {acc.inboxUrl && (
+                                    <div className="flex items-center justify-between border-t border-slate-200/60 pt-1 text-[11px]">
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase">Inbox:</span>
+                                      <div className="flex items-center gap-1.5">
+                                        <a
+                                          href={acc.inboxUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-orange-600 hover:underline font-bold inline-flex items-center gap-0.5"
+                                        >
+                                          <span>Buka Link</span>
+                                          <ExternalLink className="w-3 h-3" />
+                                        </a>
+                                        <button
+                                          onClick={() => copyAdminText(acc.inboxUrl || '', `url-${idx}-${aIdx}`)}
+                                          className="p-1 hover:bg-slate-200 rounded cursor-pointer"
+                                          title="Salin Inbox URL"
+                                        >
+                                          {copiedId === `url-${idx}-${aIdx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3 text-slate-400" />}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* BAGIAN 2: AM VERIF TARGET EMAIL */
+                        <div className="bg-amber-50/70 p-3 rounded-xl border border-amber-200/80 flex items-center justify-between text-xs">
+                          <div>
+                            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">
+                              Target Email Diverifikasi:
+                            </span>
+                            <span className="font-mono font-bold text-slate-900 select-all">
+                              {o.targetEmail || '-'}
+                            </span>
+                          </div>
+                          {o.targetEmail && (
+                            <button
+                              onClick={() => copyAdminText(o.targetEmail || '', `verif-${idx}`)}
+                              className="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold border border-amber-200 flex items-center gap-1 cursor-pointer transition-colors"
+                            >
+                              {copiedId === `verif-${idx}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                              <span>Salin</span>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
-
-          <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
-            {ordersList
-              .filter(o => orderFilter === 'All' || o.status === orderFilter)
-              .map((o, idx) => {
-                const isSuccess = o.status === 'Berhasil';
-                const isPending = o.status === 'Pending';
-                return (
-                  <div key={o.orderId || o.id || `order-${idx}`} className="py-3 space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-900">{o.productType} ({formatRupiah(o.price)})</span>
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
-                        isSuccess
-                          ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
-                          : isPending
-                          ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                          : 'bg-rose-100 text-rose-800 border border-rose-200'
-                      }`}>
-                        {isSuccess && <CheckCircle2 className="w-3 h-3 text-white" />}
-                        <span>{o.status}</span>
-                      </span>
-                    </div>
-                    <div className="text-[11px] text-slate-500">
-                      User: {o.userEmail} | ID: {o.orderId}
-                    </div>
-                    {o.targetEmail && (
-                      <div className="text-[11px] text-orange-600 font-mono">
-                        Target: {o.targetEmail}
-                      </div>
-                    )}
-                    {o.count && (
-                      <div className="text-[11px] text-slate-600">
-                        Jumlah: {o.count} Akun
-                      </div>
-                    )}
-                    <div className="text-[10px] text-slate-400">
-                      {formatDate(o.createdAt)}
-                    </div>
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* TAB 4: DEPOSIT MANAGEMENT */}
       {activeTab === 'deposits' && (
@@ -826,41 +1126,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* AM Verif Card */}
+            {/* AM Bulk Card (Produk Pertama) */}
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
-                <h4 className="font-bold text-slate-900 text-xs">1. AM Verif</h4>
-                <button
-                  type="button"
-                  onClick={() => updateSettings({ amVerifActive: !settings.amVerifActive })}
-                  className={`px-3 py-1 rounded-full text-[10px] font-black cursor-pointer ${settings.amVerifActive ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-slate-700'}`}
-                >
-                  {settings.amVerifActive ? 'AKTIF (ON)' : 'NONAKTIF (OFF)'}
-                </button>
-              </div>
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                  Harga per Akun (Rp)
-                </label>
-                <input
-                  type="number"
-                  value={formSettings.amVerifPrice}
-                  onChange={(e) => setFormSettings({ ...formSettings, amVerifPrice: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold"
-                />
-              </div>
-            </div>
-
-            {/* AM Bulk Card */}
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="font-bold text-slate-900 text-xs">2. AM Bulk</h4>
+                <div>
+                  <h4 className="font-bold text-slate-900 text-xs">1. AM Bulk (Produk Pertama)</h4>
+                  <p className="text-[10px] text-slate-500">Jika ditutup, tombol & form order tidak dapat diakses</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => updateSettings({ amBulkActive: !settings.amBulkActive })}
-                  className={`px-3 py-1 rounded-full text-[10px] font-black cursor-pointer ${settings.amBulkActive ? 'bg-emerald-500 text-white' : 'bg-slate-300 text-slate-700'}`}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-black cursor-pointer transition-all shadow-sm ${
+                    settings.amBulkActive 
+                      ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+                      : 'bg-rose-600 text-white hover:bg-rose-700'
+                  }`}
                 >
-                  {settings.amBulkActive ? 'AKTIF (ON)' : 'NONAKTIF (OFF)'}
+                  {settings.amBulkActive ? 'DIBUKA (ON)' : 'DITUTUP (OFF)'}
                 </button>
               </div>
               <div>
@@ -871,6 +1153,38 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                   type="number"
                   value={formSettings.amBulkPrice}
                   onChange={(e) => setFormSettings({ ...formSettings, amBulkPrice: parseInt(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold"
+                />
+              </div>
+            </div>
+
+            {/* AM Verif Card (Produk Kedua) */}
+            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-slate-900 text-xs">2. AM Verif (Produk Kedua)</h4>
+                  <p className="text-[10px] text-slate-500">Jika ditutup, tombol & form order tidak dapat diakses</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ amVerifActive: !settings.amVerifActive })}
+                  className={`px-3 py-1.5 rounded-full text-[10px] font-black cursor-pointer transition-all shadow-sm ${
+                    settings.amVerifActive 
+                      ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
+                      : 'bg-rose-600 text-white hover:bg-rose-700'
+                  }`}
+                >
+                  {settings.amVerifActive ? 'DIBUKA (ON)' : 'DITUTUP (OFF)'}
+                </button>
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                  Harga per Akun (Rp)
+                </label>
+                <input
+                  type="number"
+                  value={formSettings.amVerifPrice}
+                  onChange={(e) => setFormSettings({ ...formSettings, amVerifPrice: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold"
                 />
               </div>
