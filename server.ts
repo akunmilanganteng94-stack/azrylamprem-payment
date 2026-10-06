@@ -172,6 +172,38 @@ app.post('/api/am/bulk', async (req: Request, res: Response) => {
   }
 });
 
+// 4.1. Search Preset AM (TikTok to Alight Motion 5MB / XML)
+app.all(['/api/am/preset', '/api/preset'], async (req: Request, res: Response) => {
+  try {
+    const rawUrl = (req.query.url as string) || req.body?.url;
+    if (!rawUrl || typeof rawUrl !== 'string') {
+      return res.status(400).json({ ok: false, message: 'URL video TikTok diperlukan' });
+    }
+
+    const apiUrl = `https://api.nexadev.my.id/api/ampreset/?url=${encodeURIComponent(rawUrl.trim())}`;
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      }
+    });
+
+    const data = await response.json().catch(() => null);
+    if (!data) {
+      return res.status(502).json({ ok: false, message: 'Respon dari server preset tidak dapat dibaca' });
+    }
+
+    return res.status(200).json(data);
+  } catch (error: any) {
+    console.error('Error in /api/am/preset:', error);
+    return res.status(500).json({
+      ok: false,
+      message: error?.message || 'Gagal mengambil preset AM'
+    });
+  }
+});
+
 // 5. Deposit: Create QRIS
 // Sesuai permintaan user:
 // - Foto QRIS benar-benar dari API (bisa discan semua bank & e-wallet tanpa error "QR tidak tersedia")
@@ -335,9 +367,15 @@ app.post('/api/create-qris', async (req: Request, res: Response) => {
 // 6. Deposit: Check QRIS Payment Status (Otomatis cek ke BuatQRIS API)
 app.post('/api/check-qris', async (req: Request, res: Response) => {
   try {
-    const { invoice } = req.body;
-    if (!invoice) {
-      return res.status(400).json({ status: false, message: 'Invoice diperlukan' });
+    let { invoice, transactionId, qrUrl } = req.body;
+
+    if (!transactionId && qrUrl) {
+      const match = String(qrUrl).match(/\/qris\/([A-Za-z0-9_-]+)/);
+      if (match && match[1]) transactionId = match[1].replace('.png', '');
+    }
+
+    if (!invoice && !transactionId) {
+      return res.status(400).json({ status: false, message: 'Invoice atau Transaction ID diperlukan' });
     }
 
     const item = paymentStatusStore[invoice];
@@ -349,22 +387,20 @@ app.post('/api/check-qris', async (req: Request, res: Response) => {
       });
     }
 
+    const validTxId = transactionId || item?.transactionId;
+
     const settings = await getGlobalSettings();
     const accountId = settings.bqAccountId;
     const secretToken = settings.bqSecretToken;
 
-    // Cek ke API BuatQRIS bila ada transactionId atau invoice
-    if (accountId && secretToken) {
+    // Cek ke API BuatQRIS bila ada validTxId
+    if (accountId && secretToken && validTxId) {
       try {
         const formData = new URLSearchParams();
         formData.append('action', 'api_check_status');
         formData.append('account_id', accountId.trim());
         formData.append('secret_token', secretToken.trim());
-        if (item?.transactionId) {
-          formData.append('transaction_id', item.transactionId);
-        } else {
-          formData.append('invoice', invoice);
-        }
+        formData.append('transaction_id', validTxId);
 
         const bqResponse = await fetch('https://api.buatqris.site', {
           method: 'POST',

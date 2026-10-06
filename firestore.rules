@@ -70,5 +70,11 @@ service cloud.firestore {
     match /job_gmail_submissions/{subId} {
       allow read, write: if isSignedIn();
     }
+
+    // Preset History collection (Riwayat preset semua user)
+    match /preset_history/{historyId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
   }
 }
