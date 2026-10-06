@@ -21,6 +21,8 @@ import { ReferralPage } from './pages/ReferralPage';
 import { CaraKerjaPage } from './pages/CaraKerjaPage';
 import { JobGmailModal } from './pages/JobGmailModal';
 import { AnnouncementsModal } from './pages/AnnouncementsModal';
+import { PresetAmModal } from './pages/PresetAmModal';
+import { PresetAmPage } from './pages/PresetAmPage';
 import { AdminPanel } from './admin/AdminPanel';
 import { db, collection, onSnapshot, query, where } from './firebase';
 
@@ -31,6 +33,7 @@ const AppContent: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [jobGmailModalOpen, setJobGmailModalOpen] = useState(false);
   const [announcementsModalOpen, setAnnouncementsModalOpen] = useState(false);
+  const [presetAmModalOpen, setPresetAmModalOpen] = useState(false);
   // Unread announcements count
   const [unreadAnnouncements, setUnreadAnnouncements] = useState(1);
 
@@ -113,12 +116,21 @@ const AppContent: React.FC = () => {
             <HomePage
               onSelectTab={handleSelectTab}
               onOpenJobGmail={() => setJobGmailModalOpen(true)}
+              onOpenPresetAm={() => handleSelectTab('preset')}
             />
           )}
 
           {activeTab === 'order' && (
             <OrderPage
               onGoToDeposit={() => handleSelectTab('deposit')}
+              onOpenPresetAm={() => handleSelectTab('preset')}
+            />
+          )}
+
+          {activeTab === 'preset' && (
+            <PresetAmPage
+              onBack={() => handleSelectTab('home')}
+              onGoToOrder={() => handleSelectTab('order')}
             />
           )}
 
@@ -159,11 +171,12 @@ const AppContent: React.FC = () => {
           )}
         </main>
 
-        {/* Fixed Bottom Navigation (5 items) */}
+        {/* Fixed Bottom Navigation */}
         {activeTab !== 'admin' && (
           <BottomNavigation
             activeTab={activeTab}
             onSelectTab={handleSelectTab}
+            onOpenPresetAm={() => setPresetAmModalOpen(true)}
           />
         )}
 
@@ -189,6 +202,12 @@ const AppContent: React.FC = () => {
         <AnnouncementsModal
           isOpen={announcementsModalOpen}
           onClose={() => setAnnouncementsModalOpen(false)}
+        />
+
+        {/* Search Preset AM Modal (Gratis via TikTok URL) */}
+        <PresetAmModal
+          isOpen={presetAmModalOpen}
+          onClose={() => setPresetAmModalOpen(false)}
         />
 
         {/* Auth Modal (Login / Register / Forgot Password) */}
