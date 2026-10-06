@@ -127,16 +127,28 @@ export const HistoryPage: React.FC = () => {
         const depositsList: CombinedHistoryItem[] = [];
         depSnap.forEach((docSnap) => {
           const data = docSnap.data() as DepositItem;
+          const isDepositPaid = data.status === 'paid';
+          const isDepositExpired = data.status === 'expired' || (
+            data.status === 'pending' &&
+            data.createdAt &&
+            (Date.now() - new Date(data.createdAt).getTime() > 30 * 60 * 1000)
+          );
+          const displayStatus: 'Berhasil' | 'Pending' | 'Gagal' = isDepositPaid
+            ? 'Berhasil'
+            : isDepositExpired
+            ? 'Gagal'
+            : 'Pending';
+
           depositsList.push({
             id: docSnap.id,
             type: 'deposit',
             title: 'Deposit Saldo',
-            subtitle: 'QRIS Otomatis',
+            subtitle: isDepositExpired ? 'QRIS Kadaluwarsa' : 'QRIS Otomatis',
             amount: data.nominal,
-            status: data.status === 'paid' ? 'Berhasil' : data.status === 'pending' ? 'Pending' : 'Gagal',
+            status: displayStatus,
             date: data.createdAt,
             referenceId: data.invoice,
-            raw: data
+            raw: { ...data, isExpired: isDepositExpired }
           });
         });
 
@@ -273,7 +285,9 @@ export const HistoryPage: React.FC = () => {
                         : 'bg-rose-50 text-rose-700'
                     }`}
                   >
-                    {item.status}
+                    {item.type === 'deposit' && (item.raw?.isExpired || item.raw?.status === 'expired')
+                      ? 'Kadaluwarsa'
+                      : item.status}
                   </span>
                 </div>
               </div>
@@ -317,7 +331,9 @@ export const HistoryPage: React.FC = () => {
                     : 'bg-rose-100 text-rose-800'
                 }`}
               >
-                {selectedItem.status}
+                {selectedItem.type === 'deposit' && (selectedItem.raw?.isExpired || selectedItem.raw?.status === 'expired')
+                  ? 'Kadaluwarsa'
+                  : selectedItem.status}
               </span>
             </div>
 

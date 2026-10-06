@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { formatRupiah, ALIGHT_MOTION_IMAGE } from '../utils/constants';
 import { 
@@ -11,18 +11,39 @@ import {
   Layers, 
   ExternalLink,
   AlertOctagon,
-  Check
+  Check,
+  Search,
+  Lock
 } from 'lucide-react';
 import { db, doc, setDoc, updateDoc } from '../firebase';
 import { BulkAccountItem } from '../types';
 
 interface OrderPageProps {
   onGoToDeposit: () => void;
+  onOpenPresetAm?: () => void;
 }
 
-export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
+export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit, onOpenPresetAm }) => {
   const { user, profile, settings, updateUserBalance, showToast, setAuthModalOpen } = useAuth();
-  const [selectedProduct, setSelectedProduct] = useState<'verif' | 'bulk'>('verif');
+  const [selectedProduct, setSelectedProduct] = useState<'bulk' | 'verif'>('bulk');
+
+  const saldo = profile?.saldo || 0;
+  const amVerifPrice = settings.amVerifPrice || 600;
+  const amBulkPrice = settings.amBulkPrice || 500;
+
+  const isStoreOpen = settings.isStoreOpen !== false;
+  const isVerifActive = isStoreOpen && settings.amVerifActive !== false;
+  const isBulkActive = isStoreOpen && settings.amBulkActive !== false;
+
+  // Auto-switch to active product if one product is closed
+  useEffect(() => {
+    if (!isStoreOpen) return;
+    if (selectedProduct === 'bulk' && !isBulkActive && isVerifActive) {
+      setSelectedProduct('verif');
+    } else if (selectedProduct === 'verif' && !isVerifActive && isBulkActive) {
+      setSelectedProduct('bulk');
+    }
+  }, [isBulkActive, isVerifActive, selectedProduct, isStoreOpen]);
 
   // AM Verif state
   const [verifStep, setVerifStep] = useState<1 | 2>(1);
@@ -42,15 +63,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
   } | null>(null);
 
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
-
-  const saldo = profile?.saldo || 0;
-  const amVerifPrice = settings.amVerifPrice || 600;
-  const amBulkPrice = settings.amBulkPrice || 500;
   const bulkTotalPrice = bulkCount * amBulkPrice;
-
-  const isStoreOpen = settings.isStoreOpen !== false;
-  const isVerifActive = isStoreOpen && settings.amVerifActive !== false;
-  const isBulkActive = isStoreOpen && settings.amBulkActive !== false;
 
   const copyText = (txt: string, id: string) => {
     navigator.clipboard.writeText(txt);
@@ -388,14 +401,27 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
 
   return (
     <div className="max-w-md mx-auto px-4 pb-24 pt-4 space-y-4">
-      {/* Header without Left Arrow */}
-      <div className="flex items-center justify-between">
+      {/* Header with Search Preset AM right beside it */}
+      <div className="flex items-center justify-between gap-2">
         <div>
           <h2 className="text-lg font-black text-slate-900 tracking-tight">
             Order Alight Motion
           </h2>
           <p className="text-xs text-slate-500">Pilih layanan resmi & otomatis</p>
         </div>
+
+        {onOpenPresetAm && (
+          <button
+            onClick={onOpenPresetAm}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-gradient-to-r from-orange-500 via-rose-500 to-amber-500 hover:from-orange-600 hover:to-rose-600 text-white text-xs font-black shadow-md shadow-orange-500/20 active:scale-95 transition-all cursor-pointer group shrink-0"
+            title="Search Preset AM 5MB & XML Gratis"
+          >
+            <div className="w-4 h-4 flex items-center justify-center">
+              <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            </div>
+            <span>Preset AM</span>
+          </button>
+        )}
       </div>
 
       {/* Store Closed Banner if Admin closed */}
@@ -434,46 +460,92 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
         </div>
       </div>
 
-      {/* Product Type Tabs */}
+      {/* Product Type Tabs: Produk Pertama AM Bulk, Produk Kedua AM Verif */}
       <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1.5 rounded-2xl">
         <button
+          type="button"
+          disabled={!isBulkActive}
+          aria-disabled={!isBulkActive}
           onClick={() => {
-            setSelectedProduct('verif');
-            setVerifStep(1);
-            setVerifSuccessData(null);
+            if (!isBulkActive) {
+              showToast('Layanan AM Bulk sedang ditutup dan tidak dapat diakses', 'error');
+              return;
+            }
+            setSelectedProduct('bulk');
+            setBulkSuccessData(null);
           }}
-          className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
-            selectedProduct === 'verif'
-              ? 'bg-white text-orange-600 shadow-md'
-              : 'text-slate-500 hover:text-slate-900'
+          className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 transition-all select-none ${
+            !isBulkActive
+              ? 'opacity-40 bg-slate-200/70 text-slate-400 cursor-not-allowed pointer-events-none border border-dashed border-slate-300'
+              : selectedProduct === 'bulk'
+              ? 'bg-white text-orange-600 shadow-md cursor-pointer'
+              : 'text-slate-500 hover:text-slate-900 cursor-pointer'
           }`}
         >
-          <span>1. AM Verif</span>
+          <div className="flex items-center gap-1.5">
+            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black ${
+              !isBulkActive ? 'bg-slate-300 text-slate-500' : 'bg-orange-500 text-white'
+            }`}>1</span>
+            <span>AM Bulk</span>
+            {!isBulkActive ? (
+              <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-rose-500 text-white inline-flex items-center gap-0.5 shadow-xs">
+                <Lock className="w-2.5 h-2.5" /> Ditutup
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-emerald-100 text-emerald-700">
+                Buka
+              </span>
+            )}
+          </div>
           <span className="text-[11px] font-semibold opacity-90">
-            {formatRupiah(amVerifPrice)} / akun
+            {!isBulkActive ? 'Tidak Dapat Diakses' : `${formatRupiah(amBulkPrice)} / akun`}
           </span>
         </button>
 
         <button
+          type="button"
+          disabled={!isVerifActive}
+          aria-disabled={!isVerifActive}
           onClick={() => {
-            setSelectedProduct('bulk');
-            setBulkSuccessData(null);
+            if (!isVerifActive) {
+              showToast('Layanan AM Verif sedang ditutup dan tidak dapat diakses', 'error');
+              return;
+            }
+            setSelectedProduct('verif');
+            setVerifStep(1);
+            setVerifSuccessData(null);
           }}
-          className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer ${
-            selectedProduct === 'bulk'
-              ? 'bg-white text-orange-600 shadow-md'
-              : 'text-slate-500 hover:text-slate-900'
+          className={`py-2.5 px-3 rounded-xl font-black text-xs sm:text-sm flex flex-col items-center justify-center gap-0.5 transition-all select-none ${
+            !isVerifActive
+              ? 'opacity-40 bg-slate-200/70 text-slate-400 cursor-not-allowed pointer-events-none border border-dashed border-slate-300'
+              : selectedProduct === 'verif'
+              ? 'bg-white text-orange-600 shadow-md cursor-pointer'
+              : 'text-slate-500 hover:text-slate-900 cursor-pointer'
           }`}
         >
-          <span>2. AM Bulk</span>
+          <div className="flex items-center gap-1.5">
+            <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black ${
+              !isVerifActive ? 'bg-slate-300 text-slate-500' : 'bg-slate-300 text-slate-700'
+            }`}>2</span>
+            <span>AM Verif</span>
+            {!isVerifActive ? (
+              <span className="px-1.5 py-0.2 rounded text-[8.5px] font-black bg-rose-500 text-white inline-flex items-center gap-0.5 shadow-xs">
+                <Lock className="w-2.5 h-2.5" /> Ditutup
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.2 rounded text-[8px] font-black bg-emerald-100 text-emerald-700">
+                Buka
+              </span>
+            )}
+          </div>
           <span className="text-[11px] font-semibold opacity-90">
-            {formatRupiah(amBulkPrice)} / akun
+            {!isVerifActive ? 'Tidak Dapat Diakses' : `${formatRupiah(amVerifPrice)} / akun`}
           </span>
         </button>
       </div>
 
       {/* Saldo Warning Banner if low */}
-      {user && saldo < (selectedProduct === 'verif' ? amVerifPrice : bulkTotalPrice) && (
+      {user && saldo < (selectedProduct === 'bulk' ? bulkTotalPrice : amVerifPrice) && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center justify-between text-amber-800">
           <div className="flex items-center gap-2 text-xs font-bold">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -488,143 +560,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
         </div>
       )}
 
-      {/* PRODUCT 1: AM VERIF SECTION */}
-      {selectedProduct === 'verif' && (
-        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-md space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div>
-              <h4 className="text-sm font-black text-slate-900">Proses AM Verif</h4>
-              <p className="text-xs text-slate-500">Kirim verifikasi langsung ke email Anda</p>
-            </div>
-            <span className="text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-100">
-              {formatRupiah(amVerifPrice)}
-            </span>
-          </div>
-
-          {verifSuccessData ? (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <h4 className="text-base font-black text-emerald-900">
-                Akun Alight Motion Berhasil Premium!
-              </h4>
-              <p className="text-xs text-emerald-700">
-                Email: <strong>{verifSuccessData.email}</strong> telah aktif menjadi Premium.
-              </p>
-              <div className="bg-white rounded-xl p-3 text-xs text-left font-mono border border-emerald-100 text-slate-700">
-                <div>Order ID: {verifSuccessData.orderId}</div>
-                <div>Status: Berhasil (Prem)</div>
-                <div>Biaya: {formatRupiah(verifSuccessData.price)}</div>
-              </div>
-              <button
-                onClick={() => {
-                  setVerifSuccessData(null);
-                  setVerifStep(1);
-                  setVerifEmail('');
-                  setVerifLink('');
-                }}
-                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-              >
-                Order AM Verif Lagi
-              </button>
-            </div>
-          ) : verifStep === 1 ? (
-            /* STEP 1: Send Gmail */
-            <form onSubmit={handleSendGmail} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Email Gmail Target
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={verifEmail}
-                  onChange={(e) => setVerifEmail(e.target.value)}
-                  placeholder="contoh@gmail.com"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
-                />
-                <span className="text-[11px] text-slate-400 mt-1 block">
-                  Pastikan email aktif untuk menerima link masuk Alight Motion.
-                </span>
-              </div>
-
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-2.5 text-xs text-slate-600">
-                <Info className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
-                <span>
-                  Sistem akan mengirimkan link login resmi Alight Motion ke Gmail Anda.
-                </span>
-              </div>
-
-              <button
-                type="submit"
-                disabled={verifLoading || !isVerifActive}
-                className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-              >
-                {verifLoading ? (
-                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                ) : (
-                  <>
-                    <Send className="w-4 h-4" />
-                    <span>Send Gmail</span>
-                  </>
-                )}
-              </button>
-            </form>
-          ) : (
-            /* STEP 2: Verify Link */
-            <form onSubmit={handleVerifyLink} className="space-y-4">
-              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-3 text-xs">
-                <div className="font-bold text-orange-900 mb-0.5">Email Terkirim:</div>
-                <div className="text-orange-700 font-mono font-semibold">{verifEmail}</div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Link Verifikasi
-                </label>
-                <textarea
-                  rows={3}
-                  required
-                  value={verifLink}
-                  onChange={(e) => setVerifLink(e.target.value)}
-                  placeholder="https://alight-creative.firebaseapp.com/__/auth/links?link=..."
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all resize-none"
-                />
-                <span className="text-[11px] text-slate-400 mt-1 block">
-                  Buka email dari Alight Creative, salin alamat link, lalu tempelkan di sini.
-                </span>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setVerifStep(1)}
-                  className="py-3 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition-colors cursor-pointer"
-                >
-                  Ubah Email
-                </button>
-                <button
-                  type="submit"
-                  disabled={verifLoading}
-                  className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-                >
-                  {verifLoading ? (
-                    <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Verifikasi Sekarang</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      )}
-
-      {/* PRODUCT 2: AM BULK SECTION */}
+      {/* PRODUCT 1: AM BULK SECTION (PRODUK PERTAMA) */}
       {selectedProduct === 'bulk' && (
         <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-md space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -637,7 +573,17 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
             </span>
           </div>
 
-          {bulkSuccessData ? (
+          {!isBulkActive ? (
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 text-center space-y-2.5">
+              <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-sm">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h4 className="font-black text-rose-900 text-base">Layanan AM Bulk Sedang Ditutup</h4>
+              <p className="text-xs text-rose-700 max-w-xs mx-auto leading-relaxed">
+                Pemesanan AM Bulk dinonaktifkan sementara oleh Admin. Harap gunakan layanan AM Verif atau tunggu hingga dibuka kembali.
+              </p>
+            </div>
+          ) : bulkSuccessData ? (
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 space-y-3">
               <div className="text-center">
                 <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md mb-2">
@@ -806,6 +752,152 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onGoToDeposit }) => {
                 )}
               </button>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* PRODUCT 2: AM VERIF SECTION (PRODUK KEDUA) */}
+      {selectedProduct === 'verif' && (
+        <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-md space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h4 className="text-sm font-black text-slate-900">Proses AM Verif</h4>
+              <p className="text-xs text-slate-500">Kirim verifikasi langsung ke email Anda</p>
+            </div>
+            <span className="text-xs font-black text-orange-600 bg-orange-50 px-2.5 py-1 rounded-full border border-orange-100">
+              {formatRupiah(amVerifPrice)}
+            </span>
+          </div>
+
+          {!isVerifActive ? (
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 text-center space-y-2.5">
+              <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-sm">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h4 className="font-black text-rose-900 text-base">Layanan AM Verif Sedang Ditutup</h4>
+              <p className="text-xs text-rose-700 max-w-xs mx-auto leading-relaxed">
+                Pemesanan AM Verif dinonaktifkan sementara oleh Admin. Harap gunakan layanan AM Bulk atau tunggu hingga dibuka kembali.
+              </p>
+            </div>
+          ) : verifSuccessData ? (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-center space-y-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto shadow-md">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <h4 className="text-base font-black text-emerald-900">
+                Akun Alight Motion Berhasil Premium!
+              </h4>
+              <p className="text-xs text-emerald-700">
+                Email: <strong>{verifSuccessData.email}</strong> telah aktif menjadi Premium.
+              </p>
+              <div className="bg-white rounded-xl p-3 text-xs text-left font-mono border border-emerald-100 text-slate-700">
+                <div>Order ID: {verifSuccessData.orderId}</div>
+                <div>Status: Berhasil (Prem)</div>
+                <div>Biaya: {formatRupiah(verifSuccessData.price)}</div>
+              </div>
+              <button
+                onClick={() => {
+                  setVerifSuccessData(null);
+                  setVerifStep(1);
+                  setVerifEmail('');
+                  setVerifLink('');
+                }}
+                className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+              >
+                Order AM Verif Lagi
+              </button>
+            </div>
+          ) : verifStep === 1 ? (
+            /* STEP 1: Send Gmail */
+            <form onSubmit={handleSendGmail} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Email Gmail Target
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={verifEmail}
+                  onChange={(e) => setVerifEmail(e.target.value)}
+                  placeholder="contoh@gmail.com"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all"
+                />
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  Pastikan email aktif untuk menerima link masuk Alight Motion.
+                </span>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 flex items-start gap-2.5 text-xs text-slate-600">
+                <Info className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                <span>
+                  Sistem akan mengirimkan link login resmi Alight Motion ke Gmail Anda.
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={verifLoading || !isVerifActive}
+                className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {verifLoading ? (
+                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    <span>Send Gmail</span>
+                  </>
+                )}
+              </button>
+            </form>
+          ) : (
+            /* STEP 2: Verify Link */
+            <form onSubmit={handleVerifyLink} className="space-y-4">
+              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-3 text-xs">
+                <div className="font-bold text-orange-900 mb-0.5">Email Terkirim:</div>
+                <div className="text-orange-700 font-mono font-semibold">{verifEmail}</div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Link Verifikasi
+                </label>
+                <textarea
+                  rows={3}
+                  required
+                  value={verifLink}
+                  onChange={(e) => setVerifLink(e.target.value)}
+                  placeholder="https://alight-creative.firebaseapp.com/__/auth/links?link=..."
+                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-orange-500 focus:bg-white transition-all resize-none"
+                />
+                <span className="text-[11px] text-slate-400 mt-1 block">
+                  Buka email dari Alight Creative, salin alamat link, lalu tempelkan di sini.
+                </span>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setVerifStep(1)}
+                  className="py-3 px-4 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Ubah Email
+                </button>
+                <button
+                  type="submit"
+                  disabled={verifLoading}
+                  className="flex-1 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm rounded-xl shadow-md shadow-orange-500/25 active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                >
+                  {verifLoading ? (
+                    <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Verifikasi Sekarang</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           )}
         </div>
       )}

@@ -10,6 +10,8 @@ import {
   RefreshCw, 
   AlertCircle,
   AlertOctagon,
+  AlertTriangle,
+  PlusCircle,
   Download
 } from 'lucide-react';
 import { db, doc, setDoc, updateDoc, onSnapshot, increment } from '../firebase';
@@ -28,6 +30,7 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
   const [activeDeposit, setActiveDeposit] = useState<{
     depositId: string;
     invoice: string;
+    transactionId?: string;
     nominal: number;
     uniqueCode: number;
     totalPayment: number;
@@ -40,6 +43,7 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
   const [timeLeft, setTimeLeft] = useState<number>(30 * 60);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
   const hasCompletedRef = useRef(false);
 
   const minDeposit = settings.minDeposit || 1000;
@@ -72,9 +76,25 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
           if (remaining > 0) {
             setActiveDeposit(parsed);
             setTimeLeft(remaining);
+            setIsExpired(false);
             return;
           } else {
-            localStorage.removeItem('AZPREM_ACTIVE_DEPOSIT');
+            // QRIS telah melebihi batas waktu 30 menit: Tampilkan status Gagal (Waktu Habis)
+            setActiveDeposit(parsed);
+            setTimeLeft(0);
+            setIsExpired(true);
+            try {
+              localStorage.removeItem('AZPREM_ACTIVE_DEPOSIT');
+            } catch {}
+            if (parsed.invoice) {
+              setDoc(doc(db, 'deposits', parsed.invoice), {
+                status: 'gagal',
+                isExpired: true,
+                expiredAt: new Date().toISOString(),
+                gagalReason: 'Waktu pembayaran 30 menit telah habis tanpa transfer'
+              }, { merge: true }).catch(() => {});
+            }
+            return;
           }
         }
       }
@@ -83,25 +103,33 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
     }
   }, [user]);
 
-  // Timer countdown: 30 menit dari API. Hilang otomatis saat menit selesai
+  // Timer countdown: 30 menit dari API. Bila habis dan belum bayar -> status Kadaluwarsa
   useEffect(() => {
-    if (!activeDeposit || paymentSuccess) return;
+    if (!activeDeposit || paymentSuccess || isExpired) return;
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timer);
+          setIsExpired(true);
           try {
             localStorage.removeItem('AZPREM_ACTIVE_DEPOSIT');
           } catch {}
-          setActiveDeposit(null);
-          showToast('Waktu pembayaran QRIS telah habis (30 menit)', 'error');
+          if (activeDeposit) {
+            setDoc(doc(db, 'deposits', activeDeposit.invoice), {
+              status: 'gagal',
+              isExpired: true,
+              expiredAt: new Date().toISOString(),
+              gagalReason: 'Waktu pembayaran 30 menit telah habis tanpa transfer'
+            }, { merge: true }).catch(() => {});
+          }
+          showToast('Waktu pembayaran QRIS 30 menit telah habis. Transaksi dianggap Gagal.', 'error');
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [activeDeposit, paymentSuccess]);
+  }, [activeDeposit, paymentSuccess, isExpired]);
 
   // Complete Payment helper (Automatic Credit)
   const completePayment = async (invoice: string, amount: number) => {
@@ -581,49 +609,99 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
                 {activeDeposit.invoice}
               </h3>
             </div>
-            <div className="flex items-center gap-1.5 text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full font-mono text-xs font-bold border border-rose-100">
-              <Clock className="w-3.5 h-3.5" />
-              <span>{formatSeconds(timeLeft)}</span>
-            </div>
+            {isExpired ? (
+              <div className="flex items-center gap-1.5 text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full font-mono text-xs font-bold border border-rose-200">
+                <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                <span>GAGAL (WAKTU HABIS)</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full font-mono text-xs font-bold border border-rose-100">
+                <Clock className="w-3.5 h-3.5" />
+                <span>{formatSeconds(timeLeft)}</span>
+              </div>
+            )}
           </div>
 
           {/* QR Render Element: Real API QRIS with Official QRIS Look */}
           <div className="flex flex-col items-center justify-center py-2">
-            <div
-              id="qrBox"
-              className="w-full max-w-[280px] mx-auto p-4 bg-white border-2 border-orange-200/90 rounded-3xl shadow-xl flex flex-col items-center justify-center"
-            >
-              {/* Official QRIS Header */}
-              <div className="w-full flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
-                <span className="text-[12px] font-black tracking-wider text-rose-600">QRIS</span>
-                <span className="text-[9px] font-bold text-slate-400 uppercase">PEMBAYARAN NASIONAL</span>
+            <div className="relative w-full max-w-[280px]">
+              <div
+                id="qrBox"
+                className={`w-full mx-auto p-4 bg-white border-2 rounded-3xl shadow-xl flex flex-col items-center justify-center transition-all ${
+                  isExpired
+                    ? 'border-rose-300 opacity-40 filter grayscale-[40%]'
+                    : 'border-orange-200/90'
+                }`}
+              >
+                {/* Official QRIS Header */}
+                <div className="w-full flex items-center justify-between border-b border-slate-100 pb-2 mb-2">
+                  <span className="text-[12px] font-black tracking-wider text-rose-600">QRIS</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase">PEMBAYARAN NASIONAL</span>
+                </div>
+
+                <img
+                  src={activeDeposit.qrUrl || activeDeposit.qrisImage}
+                  alt="QRIS Pembayaran Resmi"
+                  className="w-full h-auto max-h-[300px] object-contain rounded-xl block mx-auto"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.onerror = null;
+                    if (activeDeposit.qrisImage) {
+                      target.src = activeDeposit.qrisImage;
+                    }
+                  }}
+                />
+
+                {/* Download QR Button */}
+                <button
+                  type="button"
+                  onClick={handleDownloadQR}
+                  disabled={isExpired}
+                  className={`mt-3.5 w-full py-2.5 px-3 rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 transition-all ${
+                    isExpired
+                      ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+                      : 'bg-slate-900 hover:bg-slate-800 text-white active:scale-95 cursor-pointer'
+                  }`}
+                >
+                  <Download className="w-4 h-4 text-amber-400" />
+                  <span>Download Gambar QR</span>
+                </button>
               </div>
 
-              <img
-                src={activeDeposit.qrUrl || activeDeposit.qrisImage}
-                alt="QRIS Pembayaran Resmi"
-                className="w-full h-auto max-h-[300px] object-contain rounded-xl block mx-auto"
-                onError={(e) => {
-                  const target = e.currentTarget;
-                  target.onerror = null;
-                  if (activeDeposit.qrisImage) {
-                    target.src = activeDeposit.qrisImage;
-                  }
-                }}
-              />
-
-              {/* Download QR Button */}
-              <button
-                type="button"
-                onClick={handleDownloadQR}
-                className="mt-3.5 w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow-md flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer"
-              >
-                <Download className="w-4 h-4 text-amber-400" />
-                <span>Download Gambar QR</span>
-              </button>
+              {/* Expired Overlay */}
+              {isExpired && (
+                <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px] rounded-3xl flex flex-col items-center justify-center p-5 text-center text-white space-y-2.5 z-10 shadow-2xl animate-in fade-in zoom-in-95">
+                  <div className="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg shadow-rose-500/40">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <span className="font-black text-sm uppercase tracking-wider text-rose-200">
+                    QRIS Gagal (Waktu Habis)
+                  </span>
+                  <p className="text-[11px] text-slate-200 leading-relaxed max-w-[210px]">
+                    Batas waktu pembayaran 30 menit telah berakhir tanpa transfer. Transaksi deposit ini dianggap gagal.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setActiveDeposit(null);
+                      setIsExpired(false);
+                      setPaymentSuccess(false);
+                      setTimeLeft(30 * 60);
+                      try {
+                        localStorage.removeItem('AZPREM_ACTIVE_DEPOSIT');
+                      } catch {}
+                    }}
+                    className="mt-1 px-4 py-2 bg-white text-slate-900 font-black text-xs rounded-xl shadow hover:bg-slate-100 active:scale-95 transition-all cursor-pointer"
+                  >
+                    Buat Deposit Baru
+                  </button>
+                </div>
+              )}
             </div>
-            <span className="text-[11px] font-semibold text-slate-500 mt-2.5 text-center">
-              Scan dengan DANA, GoPay, OVO, ShopeePay, BCA, atau Mobile Banking apa saja
+
+            <span className={`text-[11px] font-semibold mt-2.5 text-center ${isExpired ? 'text-rose-600' : 'text-slate-500'}`}>
+              {isExpired
+                ? 'Pembayaran ditutup otomatis karena melewati batas waktu 30 menit.'
+                : 'Scan dengan DANA, GoPay, OVO, ShopeePay, BCA, atau Mobile Banking apa saja'}
             </span>
           </div>
 
@@ -677,31 +755,65 @@ export const DepositPage: React.FC<DepositPageProps> = ({ onGoToHistory }) => {
 
             <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px]">
               <span className="text-slate-500 font-medium">Status:</span>
-              <span className="font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                <span>Menunggu Pembayaran</span>
-              </span>
+              {isExpired ? (
+                <span className="font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                  <span>Gagal (Waktu Habis)</span>
+                </span>
+              ) : (
+                <span className="font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span>Menunggu Pembayaran</span>
+                </span>
+              )}
             </div>
           </div>
 
           {/* Important transfer notice */}
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-medium flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-            <span>
-              Transfer tepat <strong>{formatRupiah(activeDeposit.totalPayment)}</strong>. Setelah scan & bayar, saldo Anda akan <strong>langsung masuk otomatis</strong> ke akun dalam beberapa detik tanpa perlu klik apapun!
-            </span>
-          </div>
+          {isExpired ? (
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-[11px] text-rose-900 font-medium flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>
+                QRIS ini sudah <strong>Kadaluwarsa</strong>. Jangan melakukan pembayaran ke QRIS ini lagi. Silakan klik tombol di bawah untuk membuat deposit baru.
+              </span>
+            </div>
+          ) : (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-2xl text-[11px] text-amber-900 font-medium flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <span>
+                Transfer tepat <strong>{formatRupiah(activeDeposit.totalPayment)}</strong>. Setelah scan & bayar, saldo Anda akan <strong>langsung masuk otomatis</strong> ke akun dalam beberapa detik tanpa perlu klik apapun!
+              </span>
+            </div>
+          )}
 
-          {/* Action button: Tombol Cek Status untuk refresh manual */}
+          {/* Action button: Tombol Cek Status atau Buat Deposit Baru jika Kadaluwarsa */}
           <div className="space-y-2">
-            <button
-              onClick={handleCheckStatus}
-              disabled={checkingStatus}
-              className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-bold text-sm shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 hover:from-orange-600 hover:to-amber-600 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
-            >
-              <RefreshCw className={`w-4 h-4 ${checkingStatus ? 'animate-spin' : ''}`} />
-              <span>{checkingStatus ? 'Mengecek...' : 'Cek Status Pembayaran'}</span>
-            </button>
+            {isExpired ? (
+              <button
+                onClick={() => {
+                  setActiveDeposit(null);
+                  setIsExpired(false);
+                  setPaymentSuccess(false);
+                  setTimeLeft(30 * 60);
+                  try {
+                    localStorage.removeItem('AZPREM_ACTIVE_DEPOSIT');
+                  } catch {}
+                }}
+                className="w-full py-3.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-black text-sm shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 active:scale-98 transition-all cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>Buat Deposit Baru</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleCheckStatus}
+                disabled={checkingStatus}
+                className="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-bold text-sm shadow-md shadow-orange-500/25 flex items-center justify-center gap-2 hover:from-orange-600 hover:to-amber-600 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw className={`w-4 h-4 ${checkingStatus ? 'animate-spin' : ''}`} />
+                <span>{checkingStatus ? 'Mengecek...' : 'Cek Status Pembayaran'}</span>
+              </button>
+            )}
           </div>
         </div>
       ) : paymentSuccess ? (

@@ -10,7 +10,12 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
-  AlertOctagon
+  AlertOctagon,
+  Globe,
+  ExternalLink,
+  Code2,
+  CheckCircle2,
+  Search
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { formatRupiah } from '../utils/constants';
@@ -19,11 +24,13 @@ import { db, collection, onSnapshot } from '../firebase';
 interface HomePageProps {
   onSelectTab: (tab: string) => void;
   onOpenJobGmail: () => void;
+  onOpenPresetAm?: () => void;
 }
 
 export const HomePage: React.FC<HomePageProps> = ({
   onSelectTab,
-  onOpenJobGmail
+  onOpenJobGmail,
+  onOpenPresetAm
 }) => {
   const { profile, settings, user, setAuthModalOpen } = useAuth();
 
@@ -89,12 +96,20 @@ export const HomePage: React.FC<HomePageProps> = ({
       action: () => onSelectTab('order')
     },
     {
-      id: 'job_gmail',
-      name: 'Job Gmail',
-      desc: 'Kirim Gmail',
-      icon: Mail,
+      id: 'preset_am',
+      name: 'Preset AM',
+      desc: '5MB & XML Gratis',
+      icon: Search,
+      color: 'bg-gradient-to-tr from-rose-500 to-amber-500 text-white shadow-sm shadow-orange-500/20',
+      action: onOpenPresetAm
+    },
+    {
+      id: 'azryl_web',
+      name: 'Web Azryl',
+      desc: 'azryl.my.id',
+      icon: Globe,
       color: 'bg-emerald-50 text-emerald-600',
-      action: onOpenJobGmail
+      action: () => window.open('https://www.azryl.my.id/', '_blank')
     },
     {
       id: 'referral',
@@ -174,8 +189,8 @@ export const HomePage: React.FC<HomePageProps> = ({
           </div>
         </div>
 
-        {/* Dua Tombol Utama: Deposit & Order */}
-        <div className="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-100">
+        {/* Tiga Tombol Utama: Deposit, Order, & Search Preset AM di Pinggir Order */}
+        <div className="flex items-center gap-2 mt-4 pt-3 border-t border-slate-100">
           <button
             onClick={() => {
               if (!user) {
@@ -184,18 +199,28 @@ export const HomePage: React.FC<HomePageProps> = ({
                 onSelectTab('deposit');
               }
             }}
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm shadow-md shadow-orange-500/25 active:scale-98 transition-all cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-black text-xs sm:text-sm shadow-md shadow-orange-500/25 active:scale-98 transition-all cursor-pointer"
           >
-            <Wallet className="w-4 h-4" />
+            <Wallet className="w-4 h-4 shrink-0" />
             <span>Deposit</span>
           </button>
 
           <button
             onClick={() => onSelectTab('order')}
-            className="flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-sm shadow-md shadow-slate-900/10 active:scale-98 transition-all cursor-pointer"
+            className="flex-1 flex items-center justify-center gap-1.5 py-3 px-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xs sm:text-sm shadow-md shadow-slate-900/10 active:scale-98 transition-all cursor-pointer"
           >
-            <Zap className="w-4 h-4 text-amber-400" />
+            <Zap className="w-4 h-4 text-amber-400 shrink-0" />
             <span>Order</span>
+          </button>
+
+          {/* Tombol Search Preset AM Tepat di Pinggir Fitur Order */}
+          <button
+            onClick={onOpenPresetAm}
+            title="Search Preset AM 5MB & XML (100% Gratis)"
+            className="flex items-center justify-center gap-1 py-3 px-3 rounded-2xl bg-gradient-to-br from-rose-500 via-orange-500 to-amber-500 hover:from-rose-600 hover:to-amber-600 text-white font-black text-xs shadow-md shadow-orange-500/25 active:scale-95 transition-all cursor-pointer group shrink-0 relative overflow-hidden"
+          >
+            <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span className="font-extrabold text-[11px] hidden xs:inline">Preset</span>
           </button>
         </div>
       </div>
@@ -266,42 +291,51 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </div>
 
-      {/* Section: Statistik Home Realtime / Admin-controlled */}
-      <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-md">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-            Statistik AZPREM
-          </h3>
-          <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            Real-time
-          </span>
-        </div>
+      {/* Section: Watermark Azryl (Sesuai Permintaan User: Statistik diganti Watermark Azryl) */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-5 text-white shadow-xl border border-slate-800/80 group">
+        {/* Glow background accents */}
+        <div className="absolute -top-12 -right-12 w-40 h-40 bg-orange-500/15 rounded-full blur-3xl pointer-events-none group-hover:bg-orange-500/25 transition-all"></div>
+        <div className="absolute -bottom-10 -left-10 w-36 h-36 bg-rose-500/15 rounded-full blur-2xl pointer-events-none"></div>
 
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-slate-50 rounded-2xl p-2.5 sm:p-3 border border-slate-100/80 flex flex-col justify-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              Total User
-            </span>
-            <span className="text-xs sm:text-base font-black text-slate-900 leading-tight">
-              {displayUsers.toLocaleString('id-ID')}
+        <div className="relative z-10 flex flex-col space-y-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 flex items-center justify-center font-black text-white text-xs shadow-md shadow-orange-500/30">
+                AZ
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm font-black tracking-tight text-white">AZRYL</span>
+                  <span className="px-1.5 py-0.5 rounded text-[8.5px] font-black bg-orange-500 text-white tracking-wider">OFFICIAL</span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono">www.azryl.my.id</span>
+              </div>
+            </div>
+
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-white/10 text-emerald-400 border border-emerald-400/20 backdrop-blur-sm">
+              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+              Verified Creator
             </span>
           </div>
-          <div className="bg-orange-50/70 rounded-2xl p-2.5 sm:p-3 border border-orange-100/80 flex flex-col justify-center">
-            <span className="text-[10px] font-bold text-orange-600 uppercase tracking-wider block mb-1">
-              Order AM
+
+          <p className="text-xs text-slate-300 leading-relaxed font-medium">
+            Platform resmi Alight Motion Premium, verifikasi akun otomatis, dan pencarian preset tercepat karya <strong>Azryl</strong>.
+          </p>
+
+          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+            <span className="text-[11px] text-slate-400 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Created with passion by Azryl</span>
             </span>
-            <span className="text-xs sm:text-base font-black text-orange-600 leading-tight">
-              {displayOrders.toLocaleString('id-ID')}
-            </span>
-          </div>
-          <div className="bg-slate-50 rounded-2xl p-2.5 sm:p-3 border border-slate-100/80 flex flex-col justify-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
-              Total Deposit
-            </span>
-            <span className="text-[10px] sm:text-sm font-black text-slate-900 leading-tight whitespace-nowrap overflow-hidden text-ellipsis sm:whitespace-normal">
-              {formatRupiah(displayDeposits)}
-            </span>
+            <a
+              href="https://www.azryl.my.id/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-bold text-orange-400 hover:text-orange-300 hover:underline transition-colors cursor-pointer"
+            >
+              <span>Kunjungi Web</span>
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
           </div>
         </div>
       </div>
